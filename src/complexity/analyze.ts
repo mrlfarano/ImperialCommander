@@ -80,6 +80,7 @@ function summarize(tasks: Task[], threshold: number): string {
 
   const counts: Record<ComplexityLevel, number> = { low: 0, medium: 0, high: 0 };
   let scoreSum = 0;
+  let scoredCount = 0;
   let needsExpansion = 0;
 
   for (const task of tasks) {
@@ -88,12 +89,13 @@ function summarize(tasks: Task[], threshold: number): string {
     }
     counts[task.complexity.level] += 1;
     scoreSum += task.complexity.score;
+    scoredCount += 1;
     if (task.complexity.score >= threshold) {
       needsExpansion += 1;
     }
   }
 
-  const avg = (scoreSum / tasks.length).toFixed(1);
+  const avg = scoredCount > 0 ? (scoreSum / scoredCount).toFixed(1) : "0.0";
 
   return [
     `Assessed ${tasks.length} tasks (avg complexity ${avg}).`,
