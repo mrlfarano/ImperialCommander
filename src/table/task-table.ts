@@ -53,6 +53,11 @@ export interface BuildTaskTableOptions extends Omit<SearchOptions, "sort"> {
   groupBy?: "status" | "priority" | "complexity" | "tag";
 }
 
+/**
+ * Builds structured table data (rows + tracking footer + optional groups).
+ * `footer.next` is the tag-global next actionable task (via findNextTask),
+ * not scoped to the current filter/view.
+ */
 export async function buildTaskTable(
   repository: TaskRepository,
   options: BuildTaskTableOptions = {},
@@ -148,9 +153,9 @@ function buildFooter(
   for (const row of rows) {
     byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
     byPriority[row.priority] += 1;
-    if (row.complexityLevel) {
+    if (row.complexityScore !== undefined && row.complexityLevel) {
       byComplexity[row.complexityLevel] += 1;
-      scoreSum += row.complexityScore ?? 0;
+      scoreSum += row.complexityScore;
       scored += 1;
     } else {
       byComplexity.unknown += 1;
@@ -186,7 +191,7 @@ function groupRows(
     if (groupBy === "status") return row.status;
     if (groupBy === "priority") return row.priority;
     if (groupBy === "tag") return row.tag;
-    return row.complexityLevel ?? "none";
+    return row.complexityLevel ?? "unknown";
   };
 
   const buckets = new Map<string, TaskTableRow[]>();

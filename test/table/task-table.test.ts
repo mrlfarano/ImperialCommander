@@ -70,6 +70,11 @@ describe("buildTaskTable", () => {
     expect(data.rows.map((r) => r.id)).toEqual(["1"]);
   });
 
+  it("sorts by complexity descending with unscored tasks last", async () => {
+    const data = await buildTaskTable(repository, { sort: "complexity" });
+    expect(data.rows.map((r) => r.id)).toEqual(["1", "2", "3"]);
+  });
+
   it("groups rows when groupBy is provided", async () => {
     const data = await buildTaskTable(repository, { groupBy: "priority" });
     const high = data.groups?.find((g) => g.key === "high");
