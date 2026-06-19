@@ -1,7 +1,6 @@
 # Implementation Task Breakdown — AI-Driven Development Task Orchestration System
 
-> Derived from [`PRD-task-orchestration-system.md`](./PRD-task-orchestration-system.md) (108 functional requirements, FR-1…FR-108).
-> This document decomposes the PRD into **57 build-ordered, dependency-aware tasks** across **22 phases**.
+> This document decomposes the system into **57 build-ordered, dependency-aware tasks** across **22 phases**.
 > It is written for an autonomous implementing agent: each task states scope, deliverables, the FRs it satisfies, and a test strategy.
 >
 > **v1.1 (this revision)** adds **Phases 19–22 / tasks T46–T57** for the builder- and developer-experience features (FR-98–FR-108): interactive PRD Builder, spec-readiness check, local Kanban/graph/roadmap visualizer, watch/live-sync, external tracker sync, notifications/webhooks, search, history/undo, and export/reporting.
@@ -12,7 +11,7 @@
 
 - **Build top-to-bottom.** Tasks are listed in dependency order. A task is only actionable once every task in its **Depends on** list is `done`.
 - **Each task carries four classifiers** (per the request): **Name**, **Complexity** (1–10), **Priority** (what comes first), **Depends on** (other tasks).
-- **Map back to the PRD** via the **FRs** field on each task for full acceptance criteria — this doc summarizes; the PRD is authoritative.
+- **Map back to functional requirements** via the **FRs** field on each task for acceptance criteria.
 - Prefer **TDD** (write tests first) and keep modules small (200–400 lines). The reference architecture favors many small, single-responsibility modules.
 
 ### Complexity scale (1–10)

@@ -54,8 +54,15 @@ import { undoCommand } from "../commands/undo.js";
 import { updateCommand, updateSubtaskCommand, updateTaskCommand } from "../commands/update.js";
 import { watchCommand } from "../commands/watch.js";
 import { type HostToolResponse, wrapAgentCall } from "./envelope.js";
+import {
+  type HostSamplingContext,
+  createHostAddTaskGenerator,
+  createHostPrdQuestionGenerator,
+  createHostResearchGenerator,
+  createHostSpecScorer,
+} from "./host-sampling.js";
 
-export interface AgentToolContext {
+export interface AgentToolContext extends HostSamplingContext {
   projectRoot: string;
 }
 
@@ -128,7 +135,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       complexityReport: optionalString(args.complexityReport),
     }),
   ),
-  "add-task": tool("add-task", true, async (args) =>
+  "add-task": tool("add-task", true, async (args, context) =>
     addTaskCommand({
       file: optionalString(args.file),
       tag: optionalString(args.tag),
@@ -140,6 +147,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       priority: optionalString(args.priority) as never,
       prompt: optionalString(args.prompt),
       research: booleanArg(args.research),
+      aiGenerator: createHostAddTaskGenerator(context),
     }),
   ),
   "add-subtask": tool("add-subtask", true, async (args) =>
@@ -282,7 +290,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       yes: booleanArg(args.yes) ?? true,
     }),
   ),
-  research: tool("research", false, async (args) =>
+  research: tool("research", false, async (args, context) =>
     researchCommand(requiredString(args.query, "query"), {
       file: optionalString(args.file),
       tag: optionalString(args.tag),
@@ -293,6 +301,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       tree: booleanArg(args.tree),
       saveTo: optionalString(args.saveTo),
       saveFile: booleanArg(args.saveFile),
+      generator: createHostResearchGenerator(context),
     }),
   ),
   models: tool("models", true, async (args) =>
@@ -358,7 +367,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       prompt: optionalString(args.prompt),
     }),
   ),
-  prd: tool("prd", true, async (args) =>
+  prd: tool("prd", true, async (args, context) =>
     prdCommand({
       projectRoot: optionalString(args.projectRoot),
       configDir: optionalString(args.configDir),
@@ -371,9 +380,10 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       maxRounds: optionalNumber(args.maxRounds),
       research: booleanArg(args.research),
       chain: booleanArg(args.chain),
+      questionGenerator: createHostPrdQuestionGenerator(context),
     }),
   ),
-  "check-spec": tool("check-spec", true, async (args) =>
+  "check-spec": tool("check-spec", true, async (args, context) =>
     checkSpecCommand({
       projectRoot: optionalString(args.projectRoot),
       configDir: optionalString(args.configDir),
@@ -386,6 +396,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
           ? args.report
           : undefined,
       strict: booleanArg(args.strict),
+      scorer: createHostSpecScorer(context),
     }),
   ),
   autopilot: tool("autopilot", true, async (args) =>
@@ -543,14 +554,14 @@ export function lookupTool(name: string): AgentToolDefinition | undefined {
 function tool(
   name: string,
   destructive: boolean,
-  command: (args: CommandArgs) => Promise<unknown>,
+  command: (args: CommandArgs, context: AgentToolContext) => Promise<unknown>,
 ): AgentToolDefinition {
   return {
     name,
     destructive,
     handler: (args, context) =>
       wrapAgentCall(
-        async () => command({ ...args, projectRoot: context.projectRoot }),
+        async () => command({ ...args, projectRoot: context.projectRoot }, context),
         optionalString(args.tag),
       ),
   };

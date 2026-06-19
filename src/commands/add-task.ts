@@ -1,5 +1,5 @@
 import { FileTaskRepository } from "../storage/index.js";
-import { addTask } from "../tasks/add-task.js";
+import { type AddTaskGenerator, addTask } from "../tasks/add-task.js";
 import type { TaskCommandOptions } from "./tasks.js";
 
 export interface AddTaskCommandOptions extends TaskCommandOptions {
@@ -11,6 +11,7 @@ export interface AddTaskCommandOptions extends TaskCommandOptions {
   priority?: "high" | "medium" | "low";
   prompt?: string;
   research?: boolean;
+  aiGenerator?: AddTaskGenerator;
 }
 
 export async function addTaskCommand(options: AddTaskCommandOptions = {}): Promise<string> {

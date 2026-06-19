@@ -21,23 +21,30 @@ It is designed around a local-first workflow: task data lives in readable JSON, 
 | Automation | `autopilot`, `loop`, `watch`, `history`, `undo` |
 | Agent surface | `impcom-mcp` |
 
+## Install
+
+```bash
+npm install -g imperial-commander
+```
+
+Then run:
+
+```bash
+impcom --help
+```
+
+You can also try it without a global install:
+
+```bash
+npx imperial-commander --help
+```
+
 ## Quick Start
-
-```bash
-npm install
-npm run build
-```
-
-Run the built CLI:
-
-```bash
-node dist/impcom.js --help
-```
 
 Create a project workspace:
 
 ```bash
-node dist/impcom.js init \
+impcom init \
   --name "My Project" \
   --description "What this project does"
 ```
@@ -45,42 +52,42 @@ node dist/impcom.js init \
 Draft or validate a spec:
 
 ```bash
-node dist/impcom.js prd --idea "Build a task orchestration CLI" --chain
-node dist/impcom.js check-spec .imperial-commander/docs/<spec-file>.md
+impcom prd --idea "Build a task orchestration CLI" --chain
+impcom check-spec .imperial-commander/docs/<spec-file>.md
 ```
 
 Parse the spec into tasks:
 
 ```bash
-node dist/impcom.js parse-spec .imperial-commander/docs/<spec-file>.md --force
+impcom parse-spec .imperial-commander/docs/<spec-file>.md --force
 ```
 
 Work the plan:
 
 ```bash
-node dist/impcom.js list
-node dist/impcom.js next
-node dist/impcom.js show 1
-node dist/impcom.js set-status 1 in-progress
-node dist/impcom.js set-status 1 done
+impcom list
+impcom next
+impcom show 1
+impcom set-status 1 in-progress
+impcom set-status 1 done
 ```
 
 ## Everyday Commands
 
 ```bash
 # Add and expand work
-node dist/impcom.js add-task --title "Wire auth" --description "Add local auth flow"
-node dist/impcom.js expand --id 1 --num 5
+impcom add-task --title "Wire auth" --description "Add local auth flow"
+impcom expand --id 1 --num 5
 
 # Find and inspect tasks
-node dist/impcom.js search auth
-node dist/impcom.js roadmap
-node dist/impcom.js board --view board
+impcom search auth
+impcom roadmap
+impcom board --view board
 
 # Export or generate project artifacts
-node dist/impcom.js export --format markdown --output tasks-report.md
-node dist/impcom.js generate
-node dist/impcom.js sync-readme
+impcom export --format markdown --output tasks-report.md
+impcom generate
+impcom sync-readme
 ```
 
 ## Data Model
@@ -100,7 +107,7 @@ The file backend preserves non-target tags on write and validates task IDs, depe
 Build output includes an MCP-compatible server:
 
 ```bash
-node dist/mcp-server.js
+impcom-mcp
 ```
 
 When installed as a package, the intended binaries are:
@@ -112,6 +119,22 @@ impcom-mcp
 
 The MCP server exposes task commands as in-process tool wrappers with structured success/error envelopes. Tool loading supports lean, standard, all, and custom tool selections.
 
+When the MCP host supports session sampling, AI-backed tools can use the host model instead of requiring separate provider credentials. That means Claude Code, Codex, or another capable MCP client can call `impcom-mcp` as a tool server and let commands such as `add-task --prompt`, `research`, `prd`, and `check-spec` use the active host session for inference.
+
+Example Claude Code setup:
+
+```bash
+claude mcp add --transport stdio imperial-commander -- impcom-mcp
+```
+
+For regular terminal use outside an MCP host, configure models with:
+
+```bash
+impcom models --set-main gpt-4.1
+```
+
+API keys are read from environment variables such as `OPENAI_API_KEY`; secrets are never stored in project config.
+
 ## Development
 
 Requirements:
@@ -122,6 +145,9 @@ Requirements:
 Useful scripts:
 
 ```bash
+npm install
+npm run build
+node dist/impcom.js --help
 npm run dev -- --help
 npm run lint
 npm run typecheck
@@ -134,4 +160,3 @@ Build output is written to `dist/` and intentionally ignored by git.
 ## Status
 
 This repository currently contains a local-first implementation with offline-safe skeletons for cloud/team storage, external tracker sync, notifications, and autonomous workflows. Those surfaces are wired and testable, but real third-party service integrations still need production credentials and provider-specific adapters.
-
