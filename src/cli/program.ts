@@ -683,7 +683,7 @@ export function createProgram(): Command {
     .option("--details <details>", "Task implementation details")
     .option("--test-strategy <strategy>", "Task test strategy")
     .option("--dependencies <csv>", "Comma-separated dependency ids")
-    .option("--priority <priority>", "Task priority", "medium")
+    .option("--priority <priority>", "Override the assessed priority (high, medium, low)")
     .option("--prompt <prompt>", "AI generation prompt")
     .option("--research", "Use research role for AI generation")
     .action(
