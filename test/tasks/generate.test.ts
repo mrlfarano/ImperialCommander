@@ -1,0 +1,87 @@
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { generateCommand, syncReadmeCommand } from "../../src/commands/generate.js";
+import type { Task } from "../../src/schemas/index.js";
+import { FileTaskRepository } from "../../src/storage/index.js";
+import { generateTaskFiles, syncReadme } from "../../src/tasks/generate.js";
+
+describe("task file generation", () => {
+  let root: string;
+  let storePath: string;
+  let repository: FileTaskRepository;
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "imperial-generate-"));
+    storePath = join(root, "tasks.json");
+    repository = new FileTaskRepository({ storePath });
+    await repository.create(task(1, { status: "done" }));
+    await repository.create(task(2));
+  });
+
+  it("generates zero-padded task files and removes orphans", async () => {
+    const outputDir = join(root, "out");
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(join(outputDir, "task_999.md"), "orphan", "utf8");
+
+    const result = await generateTaskFiles(repository, { outputDir, tag: "master" });
+
+    expect(result).toMatchObject({ generated: 2, removed: 1 });
+    await expect(readFile(join(outputDir, "task_001.md"), "utf8")).resolves.toContain(
+      "## Implementation Details",
+    );
+  });
+
+  it("generates json task files through command wrapper", async () => {
+    const outputDir = join(root, "json");
+
+    await expect(
+      generateCommand({ file: storePath, output: outputDir, format: "json" }),
+    ).resolves.toContain("Generated 2");
+    await expect(readFile(join(outputDir, "task_001.json"), "utf8")).resolves.toContain('"id": 1');
+  });
+
+  it("syncs readme with filters and subtasks", async () => {
+    const readmePath = join(root, "README.md");
+    await repository.update(2, {
+      subtasks: [
+        {
+          id: 1,
+          title: "Child",
+          description: "",
+          details: "",
+          status: "pending",
+          dependencies: [],
+        },
+      ],
+    });
+
+    await syncReadme(repository, readmePath, {
+      withSubtasks: true,
+      status: "pending",
+    });
+
+    const readme = await readFile(readmePath, "utf8");
+    expect(readme).toContain("2 Task 2");
+    expect(readme).not.toContain("1 Task 1");
+    expect(readme).toContain("2.1 Child");
+    await expect(syncReadmeCommand({ file: storePath, readme: readmePath })).resolves.toContain(
+      "Synced",
+    );
+  });
+
+  function task(id: number, overrides: Partial<Task> = {}): Task {
+    return {
+      id,
+      title: `Task ${id}`,
+      description: "Description",
+      details: "Details",
+      testStrategy: "Test strategy",
+      status: "pending",
+      priority: "medium",
+      dependencies: [],
+      subtasks: [],
+      ...overrides,
+    };
+  }
+});

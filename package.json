@@ -1,0 +1,36 @@
+{
+  "name": "imperial-commander",
+  "version": "0.1.0",
+  "description": "AI-driven development task orchestration CLI and agent server.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "impcom": "./dist/impcom.js",
+    "impcom-mcp": "./dist/mcp-server.js"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx src/bin/impcom.ts",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.2",
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.15.32",
+    "tsdown": "^0.12.7",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
