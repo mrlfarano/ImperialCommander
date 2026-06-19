@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type TaskAssessor, rawAssessmentSchema } from "../analysis/assess.js";
 import type { SpecReadiness } from "../prd/check-spec.js";
 import { specReadinessSchema } from "../prd/check-spec.js";
 import type { PrdAnswer, PrdInterviewState } from "../prd/interview-state-machine.js";
@@ -54,6 +55,28 @@ export function createHostAddTaskGenerator(
       telemetryData: telemetry("host-session", input.prompt),
     };
   };
+}
+
+export function createHostTaskAssessor(context: HostSamplingContext): TaskAssessor | undefined {
+  const provider = providerFor(context);
+  if (!provider) {
+    return undefined;
+  }
+
+  return async (input) =>
+    provider.generateObject(
+      [
+        "Assess this implementation task. Respond with JSON only.",
+        "Fields: priority (high|medium|low), complexityScore (integer 1-10),",
+        "recommendedSubtasks (integer 0-12), reasoning (string).",
+        "",
+        `Title: ${input.title}`,
+        `Description: ${input.description}`,
+        `Details: ${input.details}`,
+        `Dependency count: ${input.dependencies.length}`,
+      ].join("\n"),
+      rawAssessmentSchema,
+    );
 }
 
 export function createHostResearchGenerator(

@@ -76,6 +76,8 @@ export async function addTask(
   return { task };
 }
 
+// Assessment is the source of truth for priority+complexity; an explicit
+// options.priority overrides the assessed priority, otherwise the assessment wins.
 async function applyAssessment(base: Task, options: AddTaskOptions): Promise<Task> {
   const assessment = await assessTask(options.assessor, {
     title: base.title,

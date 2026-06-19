@@ -135,6 +135,14 @@ describe("mcp server", () => {
               gaps: [],
             });
           }
+          if (prompt.includes("Assess this implementation task")) {
+            return JSON.stringify({
+              priority: "high",
+              complexityScore: 6,
+              recommendedSubtasks: 3,
+              reasoning: "Sampled assessment",
+            });
+          }
           return "Host sampled research";
         },
       },

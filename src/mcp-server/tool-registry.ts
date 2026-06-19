@@ -60,6 +60,7 @@ import {
   createHostPrdQuestionGenerator,
   createHostResearchGenerator,
   createHostSpecScorer,
+  createHostTaskAssessor,
 } from "./host-sampling.js";
 
 export interface AgentToolContext extends HostSamplingContext {
@@ -148,6 +149,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       prompt: optionalString(args.prompt),
       research: booleanArg(args.research),
       aiGenerator: createHostAddTaskGenerator(context),
+      assessor: createHostTaskAssessor(context),
     }),
   ),
   "add-subtask": tool("add-subtask", true, async (args) =>
