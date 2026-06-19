@@ -289,32 +289,21 @@ export function createProgram(): Command {
 
   program
     .command("analyze-complexity")
-    .description("Analyze task complexity and write a report")
-    .option("--output <path>", "Report output path")
+    .description("Re-assess task complexity and write it onto the tasks")
     .option("--threshold <score>", "Expansion threshold", Number.parseInt)
-    .option("--research", "Use research context")
     .option("--id <csv>", "Comma-separated task ids")
     .option("--from <id>", "Start id", Number.parseInt)
     .option("--to <id>", "End id", Number.parseInt)
-    .action(
-      async (options: {
-        output?: string;
-        threshold?: number;
-        research?: boolean;
-        id?: string;
-        from?: number;
-        to?: number;
-      }) => {
-        const globalOptions = collectGlobalOptions(program);
-        console.log(
-          await analyzeComplexityCommand({
-            ...options,
-            file: globalOptions.file,
-            tag: globalOptions.tag,
-          }),
-        );
-      },
-    );
+    .action(async (options: { threshold?: number; id?: string; from?: number; to?: number }) => {
+      const globalOptions = collectGlobalOptions(program);
+      console.log(
+        await analyzeComplexityCommand({
+          ...options,
+          file: globalOptions.file,
+          tag: globalOptions.tag,
+        }),
+      );
+    });
 
   program
     .command("complexity-report")

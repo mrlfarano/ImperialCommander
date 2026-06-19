@@ -1,17 +1,18 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  analyzeComplexityCommand,
-  complexityReportCommand,
-} from "../../src/commands/complexity.js";
+import type { TaskAssessor } from "../../src/analysis/assess.js";
+import { analyzeComplexityCommand } from "../../src/commands/complexity.js";
 import { analyzeComplexity } from "../../src/complexity/analyze.js";
-import {
-  resolveComplexityReportPath,
-  summarizeComplexityReport,
-} from "../../src/complexity/report.js";
 import type { Task } from "../../src/schemas/index.js";
 import { FileTaskRepository } from "../../src/storage/index.js";
+
+const assessor: TaskAssessor = async (input) => ({
+  priority: "medium",
+  complexityScore: input.title.includes("3") ? 9 : 4,
+  recommendedSubtasks: 3,
+  reasoning: "assessed",
+});
 
 describe("complexity analysis", () => {
   let root: string;
@@ -23,59 +24,39 @@ describe("complexity analysis", () => {
     storePath = join(root, "tasks.json");
     repository = new FileTaskRepository({ storePath });
     await repository.create(task(1, { status: "done" }));
-    await repository.create(task(2, { title: "Active medium task" }));
-    await repository.create(task(3, { title: "Another active task" }));
+    await repository.create(task(2, { title: "Active task 2" }));
+    await repository.create(task(3, { title: "Active task 3" }));
     await repository.create(task(4, { status: "cancelled" }));
   });
 
-  it("analyzes active tasks and writes a strict report", async () => {
-    const output = join(root, "report.json");
-    const result = await analyzeComplexity(repository, {
-      output,
-      threshold: 6,
-      research: true,
-      now: new Date("2026-06-19T12:00:00.000Z"),
-    });
+  it("writes complexity back onto active tasks only", async () => {
+    const result = await analyzeComplexity(repository, { assessor, threshold: 8 });
 
-    expect(result.path).toBe(output);
-    expect(result.report.meta).toMatchObject({
-      tasksAnalyzed: 2,
-      totalTasks: 4,
-      thresholdScore: 6,
-      usedResearch: true,
-    });
-    expect(result.report.complexityAnalysis.map((item) => item.taskId)).toEqual([2, 3]);
+    expect(result.assessed).toBe(2);
+    const tasks = await repository.findAll();
+    expect(tasks.find((t) => t.id === 2)?.complexity).toMatchObject({ score: 4, level: "low" });
+    expect(tasks.find((t) => t.id === 3)?.complexity).toMatchObject({ score: 9, level: "high" });
+    expect(tasks.find((t) => t.id === 1)?.complexity).toBeUndefined();
+    expect(tasks.find((t) => t.id === 4)?.complexity).toBeUndefined();
   });
 
-  it("injects default analysis for omitted active tasks during partial re-analysis", async () => {
-    const result = await analyzeComplexity(repository, { ids: "2", projectRoot: root });
-
-    expect(result.report.complexityAnalysis.map((item) => item.taskId)).toEqual([2, 3]);
-    expect(result.report.complexityAnalysis.find((item) => item.taskId === 3)?.reasoning).toMatch(
-      /Default analysis/,
-    );
+  it("preserves existing priority when re-assessing", async () => {
+    await repository.update(2, { priority: "high" });
+    await analyzeComplexity(repository, { assessor });
+    expect((await repository.findById(2))?.priority).toBe("high");
   });
 
-  it("uses tag-suffixed report paths and renders a report summary", async () => {
-    expect(resolveComplexityReportPath({ projectRoot: root, tag: "feature/x" })).toContain(
-      "complexity-report-feature-x.json",
-    );
-
-    const result = await analyzeComplexity(repository, {
-      threshold: 5,
-      tag: "master",
-      projectRoot: root,
-    });
-    expect(summarizeComplexityReport(result.report)).toContain("Tasks Needing Expansion");
+  it("filters by id", async () => {
+    const result = await analyzeComplexity(repository, { assessor, ids: "3" });
+    expect(result.assessed).toBe(1);
+    expect((await repository.findById(2))?.complexity).toBeUndefined();
+    expect((await repository.findById(3))?.complexity?.level).toBe("high");
   });
 
-  it("supports command wrappers", async () => {
-    const output = join(root, "command-report.json");
-
-    await expect(
-      analyzeComplexityCommand({ file: storePath, output, threshold: 5 }),
-    ).resolves.toContain("Wrote complexity report");
-    await expect(complexityReportCommand({ output })).resolves.toContain("Complexity Report");
+  it("summarizes counts above the threshold via the command wrapper", async () => {
+    const summary = await analyzeComplexityCommand({ file: storePath, assessor, threshold: 8 });
+    expect(summary).toContain("Assessed 2 tasks");
+    expect(summary).toContain("high 1");
   });
 
   function task(id: number, overrides: Partial<Task> = {}): Task {

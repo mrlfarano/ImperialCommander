@@ -210,16 +210,15 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       prompt: requiredString(args.prompt, "prompt"),
     }),
   ),
-  "analyze-complexity": tool("analyze-complexity", true, async (args) =>
+  "analyze-complexity": tool("analyze-complexity", true, async (args, context) =>
     analyzeComplexityCommand({
       file: optionalString(args.file),
       tag: optionalString(args.tag),
-      output: optionalString(args.output),
       threshold: optionalNumber(args.threshold),
       id: optionalString(args.id),
       from: optionalNumber(args.from),
       to: optionalNumber(args.to),
-      research: booleanArg(args.research),
+      assessor: createHostTaskAssessor(context),
     }),
   ),
   "complexity-report": tool("complexity-report", false, async (args) =>
