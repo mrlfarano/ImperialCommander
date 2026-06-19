@@ -619,14 +619,12 @@ export function createProgram(): Command {
     .option("--num <count>", "Subtask count", Number.parseInt)
     .option("--prompt <prompt>", "Expansion prompt")
     .option("--force", "Replace existing subtasks")
-    .option("--complexity-report <path>", "Complexity report path")
     .action(
       async (options: {
         id: string;
         num?: number;
         prompt?: string;
         force?: boolean;
-        complexityReport?: string;
       }) => {
         const globalOptions = collectGlobalOptions(program);
         console.log(
@@ -645,13 +643,11 @@ export function createProgram(): Command {
     .option("--num <count>", "Subtask count", Number.parseInt)
     .option("--prompt <prompt>", "Expansion prompt")
     .option("--force", "Replace existing subtasks")
-    .option("--complexity-report <path>", "Complexity report path")
     .action(
       async (options: {
         num?: number;
         prompt?: string;
         force?: boolean;
-        complexityReport?: string;
       }) => {
         const globalOptions = collectGlobalOptions(program);
         console.log(

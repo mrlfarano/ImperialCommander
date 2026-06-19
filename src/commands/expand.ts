@@ -8,7 +8,6 @@ export interface ExpandCommandOptions extends TaskCommandOptions {
   num?: number;
   prompt?: string;
   force?: boolean;
-  complexityReport?: string;
 }
 
 export async function expandCommand(options: ExpandCommandOptions = {}): Promise<string> {
@@ -22,7 +21,6 @@ export async function expandCommand(options: ExpandCommandOptions = {}): Promise
     num: options.num,
     prompt: options.prompt,
     force: options.force,
-    complexityReport: options.complexityReport,
     tag: options.tag,
   });
 
@@ -39,7 +37,6 @@ export async function expandAllCommand(
     num: options.num,
     prompt: options.prompt,
     force: options.force,
-    complexityReport: options.complexityReport,
     tag: options.tag,
   });
   const created = results.reduce((total, result) => total + result.created, 0);

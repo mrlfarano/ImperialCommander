@@ -124,7 +124,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       num: optionalNumber(args.num),
       prompt: optionalString(args.prompt),
       force: booleanArg(args.force),
-      complexityReport: optionalString(args.complexityReport),
     }),
   ),
   "expand-all": tool("expand-all", true, async (args) =>
@@ -134,7 +133,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       num: optionalNumber(args.num),
       prompt: optionalString(args.prompt),
       force: booleanArg(args.force),
-      complexityReport: optionalString(args.complexityReport),
     }),
   ),
   "add-task": tool("add-task", true, async (args, context) =>
