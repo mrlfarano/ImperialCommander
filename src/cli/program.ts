@@ -307,10 +307,9 @@ export function createProgram(): Command {
 
   program
     .command("generate")
-    .description("Generate per-task files")
+    .description("Write all tasks for the tag to a single tasks.generated.yaml")
     .option("--output <dir>", "Output directory")
-    .option("--format <format>", "text or json", "text")
-    .action(async (options: { output?: string; format?: "text" | "json" }) => {
+    .action(async (options: { output?: string }) => {
       const globalOptions = collectGlobalOptions(program);
       console.log(
         await generateCommand({

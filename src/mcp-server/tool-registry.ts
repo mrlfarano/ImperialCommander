@@ -318,7 +318,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       file: optionalString(args.file),
       tag: optionalString(args.tag),
       output: optionalString(args.output),
-      format: optionalString(args.format) as never,
     }),
   ),
   "sync-readme": tool("sync-readme", true, async (args) =>

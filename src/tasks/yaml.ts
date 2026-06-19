@@ -60,6 +60,11 @@ function emitObject(record: Record<string, unknown>, depth: number): string[] {
       lines.push(`${pad(depth)}${key}: []`);
     } else if (Array.isArray(value) && value.every(isScalar)) {
       lines.push(`${pad(depth)}${key}: [${value.map(scalar).join(", ")}]`);
+    } else if (
+      !Array.isArray(value) &&
+      Object.keys(value as Record<string, unknown>).length === 0
+    ) {
+      lines.push(`${pad(depth)}${key}: {}`);
     } else {
       lines.push(`${pad(depth)}${key}:`);
       lines.push(...emit(value, depth + 1));

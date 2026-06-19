@@ -27,4 +27,8 @@ describe("toYaml", () => {
     expect(yaml).not.toContain("b:");
     expect(yaml.endsWith("\n")).toBe(true);
   });
+
+  it("emits empty objects as {}", () => {
+    expect(toYaml({ meta: {} })).toContain("meta: {}");
+  });
 });

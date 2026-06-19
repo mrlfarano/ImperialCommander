@@ -19,26 +19,29 @@ describe("task file generation", () => {
     await repository.create(task(2));
   });
 
-  it("generates zero-padded task files and removes orphans", async () => {
+  it("writes a single tasks.generated.yaml and removes legacy task files", async () => {
     const outputDir = join(root, "out");
     await mkdir(outputDir, { recursive: true });
     await writeFile(join(outputDir, "task_999.md"), "orphan", "utf8");
 
     const result = await generateTaskFiles(repository, { outputDir, tag: "master" });
 
-    expect(result).toMatchObject({ generated: 2, removed: 1 });
-    await expect(readFile(join(outputDir, "task_001.md"), "utf8")).resolves.toContain(
-      "## Implementation Details",
-    );
+    expect(result).toMatchObject({ tasks: 2, removed: 1, file: "tasks.generated.yaml" });
+    const yaml = await readFile(join(outputDir, "tasks.generated.yaml"), "utf8");
+    expect(yaml).toContain('tag: "master"');
+    expect(yaml).toContain("- id: 1");
+    expect(yaml).toContain('    title: "Task 1"');
   });
 
-  it("generates json task files through command wrapper", async () => {
-    const outputDir = join(root, "json");
+  it("generates the yaml export through the command wrapper", async () => {
+    const outputDir = join(root, "yaml");
 
-    await expect(
-      generateCommand({ file: storePath, output: outputDir, format: "json" }),
-    ).resolves.toContain("Generated 2");
-    await expect(readFile(join(outputDir, "task_001.json"), "utf8")).resolves.toContain('"id": 1');
+    await expect(generateCommand({ file: storePath, output: outputDir })).resolves.toContain(
+      "tasks.generated.yaml",
+    );
+    await expect(readFile(join(outputDir, "tasks.generated.yaml"), "utf8")).resolves.toContain(
+      "- id: 1",
+    );
   });
 
   it("syncs readme with filters and subtasks", async () => {
