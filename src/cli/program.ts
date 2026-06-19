@@ -5,7 +5,7 @@ import { autopilotCommand } from "../commands/autopilot.js";
 import { boardCommand } from "../commands/board.js";
 import { briefsCommand } from "../commands/briefs.js";
 import { CheckSpecStrictError, checkSpecCommand } from "../commands/check-spec.js";
-import { analyzeComplexityCommand, complexityReportCommand } from "../commands/complexity.js";
+import { analyzeComplexityCommand } from "../commands/complexity.js";
 import { contextCommand } from "../commands/context.js";
 import {
   addDependencyCommand,
@@ -299,21 +299,6 @@ export function createProgram(): Command {
       console.log(
         await analyzeComplexityCommand({
           ...options,
-          file: globalOptions.file,
-          tag: globalOptions.tag,
-        }),
-      );
-    });
-
-  program
-    .command("complexity-report")
-    .description("View the current complexity report")
-    .option("--output <path>", "Report path")
-    .action(async (options: { output?: string }) => {
-      const globalOptions = collectGlobalOptions(program);
-      console.log(
-        await complexityReportCommand({
-          output: options.output,
           file: globalOptions.file,
           tag: globalOptions.tag,
         }),

@@ -1,6 +1,5 @@
 import type { TaskAssessor } from "../analysis/assess.js";
 import { analyzeComplexity } from "../complexity/analyze.js";
-import { readComplexityReport, summarizeComplexityReport } from "../complexity/report.js";
 import { FileTaskRepository } from "../storage/index.js";
 import type { TaskCommandOptions } from "./tasks.js";
 
@@ -26,16 +25,4 @@ export async function analyzeComplexityCommand(
   });
 
   return result.summary;
-}
-
-export async function complexityReportCommand(
-  options: TaskCommandOptions & { output?: string } = {},
-): Promise<string> {
-  const report = await readComplexityReport({ output: options.output, tag: options.tag });
-
-  if (!report) {
-    return "No complexity report found.";
-  }
-
-  return summarizeComplexityReport(report);
 }

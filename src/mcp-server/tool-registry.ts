@@ -4,7 +4,7 @@ import { autopilotCommand } from "../commands/autopilot.js";
 import { boardCommand } from "../commands/board.js";
 import { briefsCommand } from "../commands/briefs.js";
 import { checkSpecCommand } from "../commands/check-spec.js";
-import { analyzeComplexityCommand, complexityReportCommand } from "../commands/complexity.js";
+import { analyzeComplexityCommand } from "../commands/complexity.js";
 import { contextCommand } from "../commands/context.js";
 import {
   addDependencyCommand,
@@ -217,13 +217,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       from: optionalNumber(args.from),
       to: optionalNumber(args.to),
       assessor: createHostTaskAssessor(context),
-    }),
-  ),
-  "complexity-report": tool("complexity-report", false, async (args) =>
-    complexityReportCommand({
-      file: optionalString(args.file),
-      tag: optionalString(args.tag),
-      output: optionalString(args.output),
     }),
   ),
   "add-dependency": tool("add-dependency", true, async (args) =>
