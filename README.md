@@ -13,7 +13,7 @@ AI-driven development task orchestration for turning specs into actionable task 
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 22 or newer
 - npm
 
 ## Install
@@ -93,4 +93,3 @@ npm run build
 ```
 
 Build output is written to `dist/` and is intentionally ignored by git.
-
