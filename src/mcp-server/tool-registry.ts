@@ -106,13 +106,14 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       },
     ),
   ),
-  "parse-spec": tool("parse-spec", true, async (args) =>
+  "parse-spec": tool("parse-spec", true, async (args, context) =>
     parseSpecCommand(requiredString(args.specFile, "specFile"), {
       file: optionalString(args.file),
       tag: optionalString(args.tag),
       append: booleanArg(args.append),
       force: booleanArg(args.force),
       numTasks: optionalNumber(args.numTasks),
+      assessor: createHostTaskAssessor(context),
     }),
   ),
   expand: tool("expand", true, async (args) =>
