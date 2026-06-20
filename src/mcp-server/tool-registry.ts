@@ -4,7 +4,7 @@ import { autopilotCommand } from "../commands/autopilot.js";
 import { boardCommand } from "../commands/board.js";
 import { briefsCommand } from "../commands/briefs.js";
 import { checkSpecCommand } from "../commands/check-spec.js";
-import { analyzeComplexityCommand, complexityReportCommand } from "../commands/complexity.js";
+import { analyzeComplexityCommand } from "../commands/complexity.js";
 import { contextCommand } from "../commands/context.js";
 import {
   addDependencyCommand,
@@ -35,6 +35,7 @@ import {
   removeTaskCommand,
 } from "../commands/subtasks.js";
 import { syncCommand } from "../commands/sync.js";
+import { tableCommand } from "../commands/table.js";
 import {
   addTagCommand,
   copyTagCommand,
@@ -60,6 +61,7 @@ import {
   createHostPrdQuestionGenerator,
   createHostResearchGenerator,
   createHostSpecScorer,
+  createHostTaskAssessor,
 } from "./host-sampling.js";
 
 export interface AgentToolContext extends HostSamplingContext {
@@ -105,13 +107,14 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       },
     ),
   ),
-  "parse-spec": tool("parse-spec", true, async (args) =>
+  "parse-spec": tool("parse-spec", true, async (args, context) =>
     parseSpecCommand(requiredString(args.specFile, "specFile"), {
       file: optionalString(args.file),
       tag: optionalString(args.tag),
       append: booleanArg(args.append),
       force: booleanArg(args.force),
       numTasks: optionalNumber(args.numTasks),
+      assessor: createHostTaskAssessor(context),
     }),
   ),
   expand: tool("expand", true, async (args) =>
@@ -122,7 +125,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       num: optionalNumber(args.num),
       prompt: optionalString(args.prompt),
       force: booleanArg(args.force),
-      complexityReport: optionalString(args.complexityReport),
     }),
   ),
   "expand-all": tool("expand-all", true, async (args) =>
@@ -132,7 +134,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       num: optionalNumber(args.num),
       prompt: optionalString(args.prompt),
       force: booleanArg(args.force),
-      complexityReport: optionalString(args.complexityReport),
     }),
   ),
   "add-task": tool("add-task", true, async (args, context) =>
@@ -148,6 +149,7 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       prompt: optionalString(args.prompt),
       research: booleanArg(args.research),
       aiGenerator: createHostAddTaskGenerator(context),
+      assessor: createHostTaskAssessor(context),
     }),
   ),
   "add-subtask": tool("add-subtask", true, async (args) =>
@@ -207,23 +209,15 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       prompt: requiredString(args.prompt, "prompt"),
     }),
   ),
-  "analyze-complexity": tool("analyze-complexity", true, async (args) =>
+  "analyze-complexity": tool("analyze-complexity", true, async (args, context) =>
     analyzeComplexityCommand({
       file: optionalString(args.file),
       tag: optionalString(args.tag),
-      output: optionalString(args.output),
       threshold: optionalNumber(args.threshold),
       id: optionalString(args.id),
       from: optionalNumber(args.from),
       to: optionalNumber(args.to),
-      research: booleanArg(args.research),
-    }),
-  ),
-  "complexity-report": tool("complexity-report", false, async (args) =>
-    complexityReportCommand({
-      file: optionalString(args.file),
-      tag: optionalString(args.tag),
-      output: optionalString(args.output),
+      assessor: createHostTaskAssessor(context),
     }),
   ),
   "add-dependency": tool("add-dependency", true, async (args) =>
@@ -325,7 +319,6 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       file: optionalString(args.file),
       tag: optionalString(args.tag),
       output: optionalString(args.output),
-      format: optionalString(args.format) as never,
     }),
   ),
   "sync-readme": tool("sync-readme", true, async (args) =>
@@ -532,6 +525,28 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       limit: optionalNumber(args.limit),
       sort: optionalString(args.sort) as never,
       json: booleanArg(args.json),
+    }),
+  ),
+  table: tool("table", false, async (args) =>
+    tableCommand({
+      file: optionalString(args.file),
+      tag: optionalString(args.tag),
+      query: optionalString(args.query),
+      status: optionalString(args.status),
+      priority: optionalString(args.priority),
+      ready: booleanArg(args.ready),
+      blocked: booleanArg(args.blocked),
+      hasSubtasks: booleanArg(args.hasSubtasks),
+      noSubtasks: booleanArg(args.noSubtasks),
+      allTags: booleanArg(args.allTags),
+      limit: optionalNumber(args.limit),
+      minComplexity: optionalNumber(args.minComplexity),
+      sort: optionalString(args.sort),
+      groupBy: optionalString(args.groupBy),
+      format: optionalString(args.format),
+      json: booleanArg(args.json),
+      color: booleanArg(args.color),
+      wide: booleanArg(args.wide),
     }),
   ),
   export: tool("export", true, async (args) =>

@@ -2,7 +2,6 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expandAllCommand, expandCommand } from "../../src/commands/expand.js";
-import { writeComplexityReport } from "../../src/complexity/report.js";
 import type { Task } from "../../src/schemas/index.js";
 import { FileTaskRepository } from "../../src/storage/index.js";
 import { expandAllTasks, expandTask, resolveSubtaskCount } from "../../src/tasks/expand.js";
@@ -21,9 +20,9 @@ describe("task expansion", () => {
   });
 
   it("resolves subtask count precedence", () => {
-    expect(resolveSubtaskCount({ explicitNum: 2, reportRecommended: 5 })).toBe(2);
-    expect(resolveSubtaskCount({ explicitNum: 0, reportRecommended: 5 })).toBe(3);
-    expect(resolveSubtaskCount({ reportRecommended: 4 })).toBe(4);
+    expect(resolveSubtaskCount({ explicitNum: 2, recommendedSubtasks: 5 })).toBe(2);
+    expect(resolveSubtaskCount({ explicitNum: 0, recommendedSubtasks: 5 })).toBe(3);
+    expect(resolveSubtaskCount({ recommendedSubtasks: 4 })).toBe(4);
     expect(resolveSubtaskCount({ defaultSubtasks: -1 })).toBe(3);
   });
 
@@ -42,38 +41,20 @@ describe("task expansion", () => {
     });
   });
 
-  it("uses complexity report recommendations and reasoning", async () => {
-    const reportPath = join(root, "complexity.json");
-    await writeComplexityReport(
-      {
-        meta: {
-          generatedAt: "2026-06-19T12:00:00.000Z",
-          tasksAnalyzed: 1,
-          totalTasks: 1,
-          analysisCount: 1,
-          thresholdScore: 5,
-          projectName: "Test",
-          usedResearch: false,
-          tag: "master",
-        },
-        complexityAnalysis: [
-          {
-            taskId: 1,
-            taskTitle: "Task 1",
-            complexityScore: 8,
-            recommendedSubtasks: 4,
-            expansionPrompt: { text: "Use report prompt" },
-            reasoning: "Report reasoning",
-          },
-        ],
+  it("uses embedded complexity recommendations and reasoning", async () => {
+    await repository.update(1, {
+      complexity: {
+        score: 8,
+        level: "high",
+        recommendedSubtasks: 4,
+        reasoning: "Embedded reasoning",
       },
-      { output: reportPath },
-    );
+    });
 
-    const result = await expandTask(repository, { id: 1, complexityReport: reportPath });
+    const result = await expandTask(repository, { id: 1 });
 
     expect(result.created).toBe(4);
-    expect(result.task.subtasks[0].details).toContain("Report reasoning");
+    expect(result.task.subtasks[0].details).toContain("Embedded reasoning");
   });
 
   it("expands all pending tasks only", async () => {

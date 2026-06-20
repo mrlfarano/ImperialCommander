@@ -17,7 +17,7 @@ It is designed around a local-first workflow: task data lives in readable JSON, 
 | Task loop | `list`, `show`, `next`, `set-status` |
 | Planning tools | `add-task`, `expand`, `expand-all`, `analyze-complexity`, `research` |
 | Organization | `add-tag`, `use-tag`, `move`, `add-dependency`, `validate-dependencies` |
-| Reporting | `search`, `roadmap`, `export`, `generate`, `sync-readme` |
+| Reporting | `search`, `roadmap`, `export`, `generate`, `sync-readme`, `table` |
 | Automation | `autopilot`, `loop`, `watch`, `history`, `undo` |
 | Agent surface | `impcom-mcp` |
 
@@ -89,6 +89,40 @@ impcom export --format markdown --output tasks-report.md
 impcom generate
 impcom sync-readme
 ```
+
+## Task analysis (priority + complexity)
+
+Every task-creating path assesses **priority** and **complexity** with the
+configured AI provider and stores both on the task:
+
+- `add-task` (manual or `--prompt`) and `parse-spec` require a provider. Pass an
+  explicit `--priority` to `add-task` to override the assessed priority.
+- Without a provider these commands fail with a clear error — run them under the
+  MCP host (which supplies host-session sampling) or configure a model first.
+- `analyze-complexity` re-assesses active tasks and writes `complexity` back onto
+  them (useful for backfilling older stores). The separate `complexity-report`
+  command and `complexity-report*.json` file have been removed; use `impcom table`
+  for the roll-up view.
+- `generate` now writes a single `tasks.generated.yaml` instead of per-task files.
+
+## `impcom table`
+
+Render a color-coded task table with a tracking dashboard:
+
+```bash
+impcom table                        # pretty table + footer
+impcom table --status pending --sort complexity
+impcom table --group-by priority
+impcom table --min-complexity 7
+impcom table --format markdown      # paste into a PR
+impcom table --json                 # structured data
+impcom table --watch                # live re-render on store change
+```
+
+Filters mirror `impcom search` (`--status`, `--priority`, `--ready`/`--blocked`,
+`--has-subtasks`/`--no-subtasks`, `--query`, `--tag`/`--all-tags`, `--limit`),
+plus `--min-complexity`, `--sort complexity`, `--group-by`, `--format`,
+`--no-color`, and `--wide`.
 
 ## Data Model
 

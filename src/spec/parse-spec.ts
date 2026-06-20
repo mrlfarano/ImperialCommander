@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { type TaskAssessor, assessMany } from "../analysis/assess.js";
 import type { Task } from "../schemas/index.js";
 import type { TaskRepository } from "../storage/index.js";
 
@@ -7,6 +8,7 @@ export interface ParseSpecOptions {
   force?: boolean;
   numTasks?: number;
   tag?: string;
+  assessor?: TaskAssessor;
 }
 
 export interface ParseSpecResult {
@@ -36,9 +38,23 @@ export async function parseSpecText(
   }
 
   const nextId = options.force && !options.append ? 1 : nextNumericId(existing);
-  const generated = extractTaskSeeds(contents)
+  const seeds = extractTaskSeeds(contents)
     .slice(0, options.numTasks)
     .map((seed, index) => taskFromSeed(nextId + index, seed));
+  const assessments = await assessMany(
+    options.assessor,
+    seeds.map((task) => ({
+      title: task.title,
+      description: task.description,
+      details: task.details,
+      dependencies: task.dependencies,
+    })),
+  );
+  const generated = seeds.map((task, index) => ({
+    ...task,
+    priority: assessments[index].priority,
+    complexity: assessments[index].complexity,
+  }));
 
   if (!options.append && options.force) {
     for (const task of [...existing].reverse()) {

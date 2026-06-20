@@ -5,16 +5,12 @@ import { generateTaskFiles, syncReadme } from "../tasks/generate.js";
 import type { TaskCommandOptions } from "./tasks.js";
 
 export async function generateCommand(
-  options: TaskCommandOptions & { output?: string; format?: "text" | "json" } = {},
+  options: TaskCommandOptions & { output?: string } = {},
 ): Promise<string> {
   const repository = new FileTaskRepository({ storePath: options.file, currentTag: options.tag });
   const outputDir = options.output ?? join(resolveProjectConfigDir(), "tasks");
-  const result = await generateTaskFiles(repository, {
-    outputDir,
-    tag: options.tag,
-    format: options.format,
-  });
-  return `Generated ${result.generated} task files in ${result.outputDir}; removed ${result.removed} orphaned files.`;
+  const result = await generateTaskFiles(repository, { outputDir, tag: options.tag });
+  return `Wrote ${result.tasks} tasks to ${join(result.outputDir, result.file)}; removed ${result.removed} legacy files.`;
 }
 
 export async function syncReadmeCommand(

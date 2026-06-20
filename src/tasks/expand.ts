@@ -1,4 +1,3 @@
-import { readComplexityReport } from "../complexity/report.js";
 import type { Subtask, Task } from "../schemas/index.js";
 import type { TaskRepository } from "../storage/index.js";
 
@@ -7,7 +6,6 @@ export interface ExpandOptions {
   num?: number;
   prompt?: string;
   force?: boolean;
-  complexityReport?: string;
   defaultSubtasks?: number;
   tag?: string;
 }
@@ -36,18 +34,14 @@ export async function expandTask(
     return { task, created: 0, skipped: true };
   }
 
-  const report = await readComplexityReport({ output: options.complexityReport, tag: options.tag });
-  const analysis = report?.complexityAnalysis.find(
-    (item) => String(item.taskId) === String(task.id),
-  );
   const count = resolveSubtaskCount({
     explicitNum: options.num,
-    reportRecommended: analysis?.recommendedSubtasks,
+    recommendedSubtasks: task.complexity?.recommendedSubtasks,
     defaultSubtasks: options.defaultSubtasks,
   });
-  const prompt = promptText(options.prompt ?? analysis?.expansionPrompt ?? `Expand ${task.title}`);
+  const prompt = options.prompt ?? `Expand ${task.title}`;
   const subtasks = Array.from({ length: count }, (_, index) =>
-    createSubtask(index + 1, task, prompt, analysis?.reasoning),
+    createSubtask(index + 1, task, prompt, task.complexity?.reasoning),
   );
   const updated = await repository.update(
     task.id,
@@ -76,15 +70,15 @@ export async function expandAllTasks(
 
 export function resolveSubtaskCount(input: {
   explicitNum?: number;
-  reportRecommended?: number;
+  recommendedSubtasks?: number;
   defaultSubtasks?: number;
 }): number {
   if (input.explicitNum !== undefined) {
     return input.explicitNum === 0 ? 3 : Math.max(0, input.explicitNum);
   }
 
-  if (input.reportRecommended !== undefined) {
-    return input.reportRecommended;
+  if (input.recommendedSubtasks !== undefined) {
+    return input.recommendedSubtasks;
   }
 
   if (!input.defaultSubtasks || input.defaultSubtasks < 1) {
@@ -108,8 +102,4 @@ function createSubtask(
     status: "pending",
     dependencies: id === 1 ? [] : [id - 1],
   };
-}
-
-function promptText(prompt: string | { text: string }): string {
-  return typeof prompt === "string" ? prompt : prompt.text;
 }

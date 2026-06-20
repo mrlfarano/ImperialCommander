@@ -24,7 +24,6 @@ export const standardTools = [
   "add-subtask",
   "remove-task",
   "add-task",
-  "complexity-report",
 ] as const;
 
 const aliases = new Map<string, string>([
@@ -32,7 +31,6 @@ const aliases = new Map<string, string>([
   ["init", "bootstrap"],
   ["setstatus", "set-status"],
   ["parsespec", "parse-spec"],
-  ["complexityreport", "complexity-report"],
   ["login", "auth-login"],
   ["logout", "auth-logout"],
   ["brief", "briefs"],

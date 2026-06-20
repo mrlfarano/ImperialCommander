@@ -1,30 +1,21 @@
-import type { Task } from "../schemas/index.js";
+import { type TaskAssessor, assessTask } from "../analysis/assess.js";
+import type { ComplexityLevel, Task } from "../schemas/index.js";
 import type { TaskRepository } from "../storage/index.js";
 import { parseCsvIds } from "../tasks/ids.js";
-import {
-  type ComplexityAnalysis,
-  type ComplexityReport,
-  readComplexityReport,
-  writeComplexityReport,
-} from "./report.js";
 
 export interface AnalyzeComplexityOptions {
   ids?: string;
   from?: number;
   to?: number;
   threshold?: number;
-  output?: string;
-  research?: boolean;
   tag?: string;
-  projectName?: string;
-  now?: Date;
-  projectRoot?: string;
+  assessor?: TaskAssessor;
 }
 
 export interface AnalyzeComplexityResult {
-  report: ComplexityReport;
-  path: string;
-  warning?: string;
+  assessed: number;
+  summary: string;
+  tasks: Task[];
 }
 
 const activeStatuses = new Set(["pending", "in-progress", "review"]);
@@ -33,45 +24,31 @@ export async function analyzeComplexity(
   repository: TaskRepository,
   options: AnalyzeComplexityOptions = {},
 ): Promise<AnalyzeComplexityResult> {
-  const tag = options.tag ?? "master";
   const allTasks = await repository.findAll({ tag: options.tag });
-  const filteredTasks = filterTasks(allTasks, options);
-  const existing = await readComplexityReport({
-    output: options.output,
-    tag,
-    projectRoot: options.projectRoot,
-  });
+  const targets = filterTasks(allTasks, options);
+  const updated: Task[] = [];
 
-  if (filteredTasks.length === 0) {
-    const report = existing ?? createReport([], allTasks.length, options);
-    const path = await writeComplexityReport(report, {
-      output: options.output,
-      tag,
-      projectRoot: options.projectRoot,
+  for (const target of targets) {
+    const assessment = await assessTask(options.assessor, {
+      title: target.title,
+      description: target.description,
+      details: target.details,
+      dependencies: target.dependencies,
     });
-    return { report, path, warning: "No matching active tasks found." };
+    updated.push(
+      await repository.update(
+        target.id,
+        { complexity: assessment.complexity },
+        { tag: options.tag },
+      ),
+    );
   }
 
-  const generated = filteredTasks.map(createAnalysis);
-  const generatedById = new Map(generated.map((item) => [String(item.taskId), item]));
-  const currentTaskIds = new Set(allTasks.map((task) => String(task.id)));
-  const retained =
-    existing?.complexityAnalysis.filter(
-      (item) => currentTaskIds.has(String(item.taskId)) && !generatedById.has(String(item.taskId)),
-    ) ?? [];
-  const defaulted = allTasks
-    .filter((task) => activeStatuses.has(task.status))
-    .filter((task) => !generatedById.has(String(task.id)))
-    .filter((task) => !retained.some((item) => String(item.taskId) === String(task.id)))
-    .map(createDefaultAnalysis);
-  const report = createReport([...retained, ...generated, ...defaulted], allTasks.length, options);
-  const path = await writeComplexityReport(report, {
-    output: options.output,
-    tag,
-    projectRoot: options.projectRoot,
-  });
-
-  return { report, path };
+  return {
+    assessed: updated.length,
+    summary: summarize(updated, normalizeThreshold(options.threshold)),
+    tasks: updated,
+  };
 }
 
 function filterTasks(tasks: Task[], options: AnalyzeComplexityOptions): Task[] {
@@ -81,11 +58,9 @@ function filterTasks(tasks: Task[], options: AnalyzeComplexityOptions): Task[] {
     if (!activeStatuses.has(task.status)) {
       return false;
     }
-
     if (ids.size > 0 && !ids.has(String(task.id))) {
       return false;
     }
-
     if (typeof task.id === "number") {
       if (options.from !== undefined && task.id < options.from) {
         return false;
@@ -94,56 +69,39 @@ function filterTasks(tasks: Task[], options: AnalyzeComplexityOptions): Task[] {
         return false;
       }
     }
-
     return true;
   });
 }
 
-function createReport(
-  analysis: ComplexityAnalysis[],
-  totalTasks: number,
-  options: AnalyzeComplexityOptions,
-): ComplexityReport {
-  return {
-    meta: {
-      generatedAt: (options.now ?? new Date()).toISOString(),
-      tasksAnalyzed: analysis.length,
-      totalTasks,
-      analysisCount: analysis.length,
-      thresholdScore: normalizeThreshold(options.threshold),
-      projectName: options.projectName ?? "Imperial Commander Project",
-      usedResearch: options.research === true,
-      tag: options.tag ?? "master",
-    },
-    complexityAnalysis: analysis.sort((left, right) =>
-      String(left.taskId).localeCompare(String(right.taskId)),
-    ),
-  };
-}
+function summarize(tasks: Task[], threshold: number): string {
+  if (tasks.length === 0) {
+    return "No matching active tasks found.";
+  }
 
-function createAnalysis(task: Task): ComplexityAnalysis {
-  const text = `${task.title} ${task.description} ${task.details}`;
-  const score = Math.min(10, Math.max(1, Math.ceil(text.length / 80) + task.dependencies.length));
+  const counts: Record<ComplexityLevel, number> = { low: 0, medium: 0, high: 0 };
+  let scoreSum = 0;
+  let scoredCount = 0;
+  let needsExpansion = 0;
 
-  return {
-    taskId: task.id,
-    taskTitle: task.title,
-    complexityScore: score,
-    recommendedSubtasks: Math.max(1, Math.min(8, Math.ceil(score / 2))),
-    expansionPrompt: `Break "${task.title}" into implementation subtasks.`,
-    reasoning: `Estimated from task text length and ${task.dependencies.length} dependencies.`,
-  };
-}
+  for (const task of tasks) {
+    if (!task.complexity) {
+      continue;
+    }
+    counts[task.complexity.level] += 1;
+    scoreSum += task.complexity.score;
+    scoredCount += 1;
+    if (task.complexity.score >= threshold) {
+      needsExpansion += 1;
+    }
+  }
 
-function createDefaultAnalysis(task: Task): ComplexityAnalysis {
-  return {
-    taskId: task.id,
-    taskTitle: task.title,
-    complexityScore: 5,
-    recommendedSubtasks: 3,
-    expansionPrompt: `Break "${task.title}" into implementation subtasks.`,
-    reasoning: "Default analysis inserted because the task was not re-analyzed.",
-  };
+  const avg = scoredCount > 0 ? (scoreSum / scoredCount).toFixed(1) : "0.0";
+
+  return [
+    `Assessed ${tasks.length} tasks (avg complexity ${avg}).`,
+    `By level: high ${counts.high} · medium ${counts.medium} · low ${counts.low}.`,
+    `${needsExpansion} task(s) at or above threshold ${threshold} — consider \`impcom expand\`.`,
+  ].join("\n");
 }
 
 function normalizeThreshold(threshold: number | undefined): number {

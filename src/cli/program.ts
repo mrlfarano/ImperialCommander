@@ -5,7 +5,7 @@ import { autopilotCommand } from "../commands/autopilot.js";
 import { boardCommand } from "../commands/board.js";
 import { briefsCommand } from "../commands/briefs.js";
 import { CheckSpecStrictError, checkSpecCommand } from "../commands/check-spec.js";
-import { analyzeComplexityCommand, complexityReportCommand } from "../commands/complexity.js";
+import { analyzeComplexityCommand } from "../commands/complexity.js";
 import { contextCommand } from "../commands/context.js";
 import {
   addDependencyCommand,
@@ -36,6 +36,7 @@ import {
   removeTaskCommand,
 } from "../commands/subtasks.js";
 import { syncCommand } from "../commands/sync.js";
+import { tableCommand, watchTaskTable } from "../commands/table.js";
 import {
   addTagCommand,
   copyTagCommand,
@@ -289,42 +290,16 @@ export function createProgram(): Command {
 
   program
     .command("analyze-complexity")
-    .description("Analyze task complexity and write a report")
-    .option("--output <path>", "Report output path")
+    .description("Re-assess task complexity and write it onto the tasks")
     .option("--threshold <score>", "Expansion threshold", Number.parseInt)
-    .option("--research", "Use research context")
     .option("--id <csv>", "Comma-separated task ids")
     .option("--from <id>", "Start id", Number.parseInt)
     .option("--to <id>", "End id", Number.parseInt)
-    .action(
-      async (options: {
-        output?: string;
-        threshold?: number;
-        research?: boolean;
-        id?: string;
-        from?: number;
-        to?: number;
-      }) => {
-        const globalOptions = collectGlobalOptions(program);
-        console.log(
-          await analyzeComplexityCommand({
-            ...options,
-            file: globalOptions.file,
-            tag: globalOptions.tag,
-          }),
-        );
-      },
-    );
-
-  program
-    .command("complexity-report")
-    .description("View the current complexity report")
-    .option("--output <path>", "Report path")
-    .action(async (options: { output?: string }) => {
+    .action(async (options: { threshold?: number; id?: string; from?: number; to?: number }) => {
       const globalOptions = collectGlobalOptions(program);
       console.log(
-        await complexityReportCommand({
-          output: options.output,
+        await analyzeComplexityCommand({
+          ...options,
           file: globalOptions.file,
           tag: globalOptions.tag,
         }),
@@ -333,10 +308,9 @@ export function createProgram(): Command {
 
   program
     .command("generate")
-    .description("Generate per-task files")
+    .description("Write all tasks for the tag to a single tasks.generated.yaml")
     .option("--output <dir>", "Output directory")
-    .option("--format <format>", "text or json", "text")
-    .action(async (options: { output?: string; format?: "text" | "json" }) => {
+    .action(async (options: { output?: string }) => {
       const globalOptions = collectGlobalOptions(program);
       console.log(
         await generateCommand({
@@ -630,14 +604,12 @@ export function createProgram(): Command {
     .option("--num <count>", "Subtask count", Number.parseInt)
     .option("--prompt <prompt>", "Expansion prompt")
     .option("--force", "Replace existing subtasks")
-    .option("--complexity-report <path>", "Complexity report path")
     .action(
       async (options: {
         id: string;
         num?: number;
         prompt?: string;
         force?: boolean;
-        complexityReport?: string;
       }) => {
         const globalOptions = collectGlobalOptions(program);
         console.log(
@@ -656,13 +628,11 @@ export function createProgram(): Command {
     .option("--num <count>", "Subtask count", Number.parseInt)
     .option("--prompt <prompt>", "Expansion prompt")
     .option("--force", "Replace existing subtasks")
-    .option("--complexity-report <path>", "Complexity report path")
     .action(
       async (options: {
         num?: number;
         prompt?: string;
         force?: boolean;
-        complexityReport?: string;
       }) => {
         const globalOptions = collectGlobalOptions(program);
         console.log(
@@ -683,7 +653,7 @@ export function createProgram(): Command {
     .option("--details <details>", "Task implementation details")
     .option("--test-strategy <strategy>", "Task test strategy")
     .option("--dependencies <csv>", "Comma-separated dependency ids")
-    .option("--priority <priority>", "Task priority", "medium")
+    .option("--priority <priority>", "Override the assessed priority (high, medium, low)")
     .option("--prompt <prompt>", "AI generation prompt")
     .option("--research", "Use research role for AI generation")
     .action(
@@ -734,6 +704,90 @@ export function createProgram(): Command {
             tag: globalOptions.tag,
           }),
         );
+      },
+    );
+
+  program
+    .command("table")
+    .description("Render a color-coded task table with a tracking dashboard")
+    .argument("[query]", "Search query")
+    .option("--status <status>", "Filter by status")
+    .option("--priority <priority>", "Filter by priority")
+    .option("--ready", "Only tasks with satisfied dependencies")
+    .option("--blocked", "Only tasks with unsatisfied dependencies")
+    .option("--has-subtasks", "Only tasks with subtasks")
+    .option("--no-subtasks", "Only tasks without subtasks")
+    .option("--all-tags", "Include all tags")
+    .option("--limit <count>", "Maximum rows", Number.parseInt)
+    .option(
+      "--min-complexity <score>",
+      "Only tasks at or above a complexity score",
+      Number.parseInt,
+    )
+    .option("--sort <field>", "id, priority, status, title, or complexity")
+    .option("--group-by <field>", "status, priority, complexity, or tag")
+    .option("--format <format>", "pretty, json, csv, or markdown")
+    .option("--json", "Shortcut for --format json")
+    .option("--no-color", "Disable ANSI color")
+    .option("--wide", "Disable title truncation")
+    .option("--watch", "Re-render when the task store changes")
+    .action(
+      async (
+        query: string | undefined,
+        options: {
+          status?: string;
+          priority?: string;
+          ready?: boolean;
+          blocked?: boolean;
+          hasSubtasks?: boolean;
+          subtasks?: boolean;
+          allTags?: boolean;
+          limit?: number;
+          minComplexity?: number;
+          sort?: string;
+          groupBy?: string;
+          format?: string;
+          json?: boolean;
+          color?: boolean;
+          wide?: boolean;
+          watch?: boolean;
+        },
+      ) => {
+        const globalOptions = collectGlobalOptions(program);
+        const tableOptions = {
+          query,
+          status: options.status,
+          priority: options.priority,
+          ready: options.ready,
+          blocked: options.blocked,
+          hasSubtasks: options.hasSubtasks,
+          noSubtasks: options.subtasks === false,
+          allTags: options.allTags,
+          limit: options.limit,
+          minComplexity: options.minComplexity,
+          sort: options.sort,
+          groupBy: options.groupBy,
+          format: options.format,
+          json: options.json,
+          color: options.color,
+          wide: options.wide,
+          file: globalOptions.file,
+          tag: globalOptions.tag,
+        };
+        if (options.watch) {
+          const controller = new AbortController();
+          const onSignal = () => controller.abort();
+          process.once("SIGINT", onSignal);
+          process.once("SIGTERM", onSignal);
+          try {
+            await watchTaskTable(tableOptions, { signal: controller.signal });
+          } finally {
+            process.off("SIGINT", onSignal);
+            process.off("SIGTERM", onSignal);
+          }
+          return;
+        }
+        console.log(await tableCommand(tableOptions));
       },
     );
 
