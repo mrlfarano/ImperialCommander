@@ -775,7 +775,16 @@ export function createProgram(): Command {
           tag: globalOptions.tag,
         };
         if (options.watch) {
-          await watchTaskTable(tableOptions);
+          const controller = new AbortController();
+          const onSignal = () => controller.abort();
+          process.once("SIGINT", onSignal);
+          process.once("SIGTERM", onSignal);
+          try {
+            await watchTaskTable(tableOptions, { signal: controller.signal });
+          } finally {
+            process.off("SIGINT", onSignal);
+            process.off("SIGTERM", onSignal);
+          }
           return;
         }
         console.log(await tableCommand(tableOptions));

@@ -1,8 +1,8 @@
-import { watch } from "node:fs";
 import { TaskPrioritySchema, TaskStatusSchema } from "../schemas/index.js";
-import { FileTaskRepository, resolveTaskStorePath } from "../storage/index.js";
+import { FileTaskRepository } from "../storage/index.js";
 import { type FormatTaskTableOptions, formatTaskTable } from "../table/format-table.js";
 import { type BuildTaskTableOptions, buildTaskTable } from "../table/task-table.js";
+import { startTaskWatch } from "../watch/watch.js";
 import type { TaskCommandOptions } from "./tasks.js";
 
 const SORT_FIELDS = ["id", "priority", "status", "title", "complexity"] as const;
@@ -114,20 +114,26 @@ export async function watchTaskTable(
 
   await render();
 
-  if (watchOptions.once) {
+  const { signal } = watchOptions;
+  if (watchOptions.once || signal?.aborted) {
     return;
   }
 
-  const storePath = resolveTaskStorePath({ storePath: options.file });
-
   await new Promise<void>((resolve) => {
-    const watcher = watch(storePath, { persistent: true }, () => {
-      render().catch(() => undefined);
+    const handle = startTaskWatch({
+      storePath: options.file,
+      onChange: () => {
+        render().catch((error) => {
+          process.stderr.write(`table watch render failed: ${String(error)}\n`);
+        });
+      },
     });
     const stop = () => {
-      watcher.close();
+      handle.close();
       resolve();
     };
-    watchOptions.signal?.addEventListener("abort", stop, { once: true });
+    if (signal) {
+      signal.addEventListener("abort", stop, { once: true });
+    }
   });
 }

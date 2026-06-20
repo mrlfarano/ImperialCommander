@@ -65,6 +65,18 @@ describe("table command", () => {
     expect(renders[0]).toContain("TASKS · master");
   });
 
+  it("stops watching cleanly when the signal aborts", async () => {
+    const controller = new AbortController();
+    const renders: string[] = [];
+    const promise = watchTaskTable(
+      { file: storePath, color: false },
+      { write: (text) => renders.push(text), signal: controller.signal },
+    );
+    controller.abort();
+    await promise;
+    expect(renders.length).toBeGreaterThanOrEqual(1);
+  });
+
   function task(id: number, overrides: Partial<Task> = {}): Task {
     return {
       id,
