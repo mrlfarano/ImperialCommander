@@ -2,7 +2,12 @@
 
 ## 0.2.1 - 2026-06-20
 
-- Added a styled local Kanban UI for `impcom board`, including board metrics, status columns, task cards, ready/blocked indicators, subtask progress, and read-only/read-write handling.
+- Reworked the `impcom board` web view into a read-only live monitor for watching the system work the task store.
+- Added an "Active now" hero that highlights in-progress tasks and surfaces a stalled state when nothing moves for a few minutes.
+- Added a momentum strip with overall progress, active count, completions in the last 10 minutes, and a throughput sparkline.
+- Switched to diff-based rendering that patches only changed cards and animates column transitions over Server-Sent Events (honoring `prefers-reduced-motion`).
+- Added a connection heartbeat so a dropped event stream is visible, and reordered columns into a logical flow with terminal columns dimmed.
+- Added a dark theme by default with a persisted light toggle, and removed the inline status editor in favor of read-only monitoring.
 - Kept the existing board, graph, roadmap, and task JSON endpoints available from the visualization server.
 
 ## 0.1.0 - 2026-06-19

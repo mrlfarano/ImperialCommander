@@ -173,25 +173,43 @@ async function readJsonBody(request: NodeJS.ReadableStream): Promise<Record<stri
 
 function renderShell(readOnly: boolean): string {
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Imperial Commander Board</title>
+<title>Imperial Commander Monitor</title>
 <style>
 :root {
+  color-scheme: dark;
+  --bg: oklch(18% 0.015 255);
+  --panel: oklch(23% 0.02 255);
+  --panel-2: oklch(27% 0.022 255);
+  --ink: oklch(95% 0.01 255);
+  --muted: oklch(70% 0.02 255);
+  --line: oklch(33% 0.02 255);
+  --blue: oklch(72% 0.14 250);
+  --green: oklch(74% 0.16 155);
+  --amber: oklch(80% 0.14 75);
+  --red: oklch(70% 0.19 25);
+  --neutral: oklch(60% 0.02 255);
+  --shadow: 0 10px 30px rgba(0, 0, 0, .42);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, .5);
+}
+[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f7fb;
-  --panel: #ffffff;
-  --panel-2: #eef2f7;
-  --ink: #152033;
-  --muted: #637087;
-  --line: #d9e0ea;
-  --blue: #2266d4;
-  --green: #167c52;
-  --amber: #a15c00;
-  --red: #b42318;
-  --shadow: 0 10px 24px rgba(21, 32, 51, .08);
+  --bg: oklch(97% 0.005 255);
+  --panel: oklch(100% 0 0);
+  --panel-2: oklch(95% 0.008 255);
+  --ink: oklch(25% 0.03 255);
+  --muted: oklch(50% 0.02 255);
+  --line: oklch(88% 0.01 255);
+  --blue: oklch(50% 0.18 255);
+  --green: oklch(48% 0.14 155);
+  --amber: oklch(58% 0.13 75);
+  --red: oklch(52% 0.2 25);
+  --neutral: oklch(65% 0.015 255);
+  --shadow: 0 10px 24px rgba(20, 30, 50, .1);
+  --shadow-lift: 0 16px 36px rgba(20, 30, 50, .16);
 }
 * { box-sizing: border-box; }
 body {
@@ -200,127 +218,131 @@ body {
   color: var(--ink);
   font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+.wrap { max-width: 1560px; margin: 0 auto; padding: 16px 22px; }
 header {
   position: sticky;
   top: 0;
   z-index: 5;
   border-bottom: 1px solid var(--line);
-  background: rgba(245, 247, 251, .94);
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
 }
-.wrap { max-width: 1500px; margin: 0 auto; padding: 18px 22px; }
-.top { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-h1 { margin: 0; font-size: 22px; letter-spacing: 0; }
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+h1 { margin: 0; font-size: 21px; letter-spacing: -.01em; }
 .subtitle { margin-top: 3px; color: var(--muted); font-size: 13px; }
-.nav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-.nav a {
+.head-right { display: flex; align-items: center; gap: 14px; }
+.heartbeat { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 999px; background: var(--neutral); }
+.heartbeat.live .dot { background: var(--green); animation: pulse 2.4s ease-in-out infinite; }
+.heartbeat.down .dot { background: var(--red); }
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--panel);
   color: var(--ink);
-  text-decoration: none;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  padding: 7px 10px;
   border-radius: 8px;
-}
-.nav a.active { border-color: var(--blue); color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(130px, 1fr));
-  gap: 10px;
-  margin-top: 16px;
-}
-.metric {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-.metric strong { display: block; font-size: 20px; }
-.metric span { color: var(--muted); font-size: 12px; }
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--muted);
-  padding-top: 0;
-}
-.board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(280px, 1fr));
-  gap: 14px;
-  align-items: start;
-}
-.column {
-  min-height: 220px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-}
-.column h2 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 0 10px;
+  padding: 6px 10px;
+  cursor: pointer;
   font-size: 13px;
-  text-transform: uppercase;
-  color: var(--muted);
-  letter-spacing: .04em;
 }
-.count {
-  min-width: 24px;
-  text-align: center;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--ink);
-  border: 1px solid var(--line);
-}
-.card {
-  display: block;
+.theme-toggle:hover { border-color: var(--blue); color: var(--blue); }
+
+/* momentum strip */
+.momentum { display: grid; grid-template-columns: 2.2fr repeat(4, 1fr); gap: 12px; margin-top: 16px; align-items: stretch; }
+.tile {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-left: 4px solid #9aa7b8;
-  border-radius: 8px;
-  padding: 11px;
-  margin-bottom: 10px;
+  border-radius: 10px;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.tile .label { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+.tile .value { font-size: 22px; font-weight: 700; line-height: 1; }
+.tile .value small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.progress-track { height: 9px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--blue), var(--green)); transform-origin: left; transition: transform .6s cubic-bezier(.16,1,.3,1); }
+.tile.stall.is-stalled { border-color: var(--amber); }
+.tile.stall.is-stalled .value { color: var(--amber); }
+.spark { display: block; }
+.spark polyline { fill: none; stroke: var(--green); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
+/* active-now hero */
+.hero {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--blue) 10%, var(--panel)), var(--panel));
+  padding: 14px 16px;
   box-shadow: var(--shadow);
 }
-.card.high { border-left-color: var(--red); }
+.hero-head { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+.hero-head .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.work-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--blue); animation: pulse 1.5s ease-in-out infinite; }
+.hero.idle .work-dot { background: var(--neutral); animation: none; }
+.hero.stalled { border-color: var(--amber); background: linear-gradient(180deg, color-mix(in oklch, var(--amber) 12%, var(--panel)), var(--panel)); }
+.hero.stalled .work-dot { background: var(--amber); animation: none; }
+.hero-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.hero-card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 9px; padding: 12px 13px; }
+.hero-card .t { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+.hero-idle-msg { color: var(--muted); font-size: 13.5px; }
+
+/* board */
+.board { display: grid; grid-template-columns: repeat(6, minmax(220px, 1fr)); gap: 13px; align-items: start; }
+.column { min-height: 180px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.column.dimmed { opacity: .62; }
+.column h2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; }
+.col-name { display: flex; align-items: center; gap: 7px; }
+.col-accent { width: 8px; height: 8px; border-radius: 999px; background: var(--neutral); }
+.col-pending .col-accent { background: var(--neutral); }
+.col-in-progress .col-accent { background: var(--blue); }
+.col-review .col-accent { background: var(--amber); }
+.col-done .col-accent { background: var(--green); }
+.col-deferred .col-accent { background: var(--neutral); }
+.col-cancelled .col-accent { background: var(--red); }
+.count { min-width: 22px; text-align: center; padding: 2px 7px; border-radius: 999px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-size: 12px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--neutral);
+  border-radius: 9px;
+  padding: 11px;
+  margin-bottom: 9px;
+  box-shadow: var(--shadow);
+  will-change: transform;
+}
+.card.high { border-left-color: var(--red); box-shadow: var(--shadow-lift); }
 .card.medium { border-left-color: var(--amber); }
 .card.low { border-left-color: var(--green); }
-.card-title { font-weight: 700; font-size: 13px; margin: 0 0 8px; overflow-wrap: anywhere; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.chip {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 2px 7px;
-  color: var(--muted);
-  font-size: 12px;
-  background: #f8fafc;
-}
-.chip.ready { color: var(--green); border-color: rgba(22,124,82,.35); background: #edf8f3; }
-.chip.blocked { color: var(--amber); border-color: rgba(161,92,0,.35); background: #fff6e8; }
-.status-select {
-  width: 100%;
-  margin-top: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  padding: 7px 8px;
-}
-.status-select:disabled { color: var(--muted); background: #f8fafc; }
-.empty { color: var(--muted); padding: 18px 6px; text-align: center; border: 1px dashed #c6cfdb; border-radius: 8px; }
+.card.terminal { opacity: .72; box-shadow: none; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.id-pill { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.prio-pill { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.card.high .prio-pill { color: var(--red); border-color: color-mix(in oklch, var(--red) 45%, transparent); }
+.card.medium .prio-pill { color: var(--amber); border-color: color-mix(in oklch, var(--amber) 45%, transparent); }
+.card.low .prio-pill { color: var(--green); border-color: color-mix(in oklch, var(--green) 45%, transparent); }
+.card-title { font-weight: 650; font-size: 13px; margin: 0; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; color: var(--muted); font-size: 11.5px; background: color-mix(in oklch, var(--panel-2) 60%, transparent); }
+.chip.ready { color: var(--green); border-color: color-mix(in oklch, var(--green) 38%, transparent); }
+.chip.blocked { color: var(--amber); border-color: color-mix(in oklch, var(--amber) 38%, transparent); }
+.subbar { height: 5px; border-radius: 999px; background: var(--panel-2); overflow: hidden; margin-top: 9px; }
+.subbar > span { display: block; height: 100%; background: var(--green); border-radius: 999px; }
+.empty { color: var(--muted); padding: 16px 6px; text-align: center; border: 1px dashed var(--line); border-radius: 8px; font-size: 12.5px; }
 .error { color: var(--red); font-weight: 700; }
-@media (max-width: 1180px) {
-  .board { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-  .metrics { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 680px) {
-  .top, .toolbar { align-items: flex-start; flex-direction: column; }
-  .board, .metrics { grid-template-columns: 1fr; }
-}
+footer { color: var(--muted); font-size: 12px; padding: 8px 22px 22px; max-width: 1560px; margin: 0 auto; display: flex; gap: 14px; flex-wrap: wrap; }
+footer a { color: var(--muted); }
+
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.82); } }
+@keyframes cardEnter { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes cardMoved { 0% { transform: scale(1); } 35% { transform: scale(1.035); } 100% { transform: scale(1); } }
+.card--enter { animation: cardEnter .32s cubic-bezier(.16,1,.3,1); }
+.card--moved { animation: cardMoved .5s cubic-bezier(.16,1,.3,1); border-left-color: var(--blue) !important; }
+
+@media (max-width: 1300px) { .board { grid-template-columns: repeat(3, minmax(220px, 1fr)); } .momentum { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .top { flex-direction: column; } .board { grid-template-columns: 1fr; } .momentum { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -328,134 +350,315 @@ h1 { margin: 0; font-size: 22px; letter-spacing: 0; }
 <div class="wrap">
 <div class="top">
 <div>
-<h1>Imperial Commander Board</h1>
-<div class="subtitle">Local Kanban view over the active task store</div>
+<h1>Imperial Commander Monitor</h1>
+<div class="subtitle">Live view of the system working the task store &middot; ${readOnly ? "read-only" : "read-write"}</div>
 </div>
-<nav class="nav">
-<a class="active" href="/board">Board</a>
-<a href="/api/board">Board JSON</a>
-<a href="/api/graph">Graph JSON</a>
-<a href="/api/roadmap">Roadmap JSON</a>
-</nav>
+<div class="head-right">
+<div class="heartbeat" id="heartbeat"><span class="dot"></span><span id="hb-text">connecting</span></div>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">Light</button>
 </div>
-<section class="metrics" id="metrics" aria-label="Board metrics"></section>
+</div>
+<section class="momentum" id="momentum" aria-label="System momentum"></section>
 </div>
 </header>
 <main>
-<section class="wrap toolbar">
-<span>Mode: <strong>${readOnly ? "read-only" : "read-write"}</strong></span>
-<span id="updated">Loading...</span>
-</section>
+<section class="wrap"><div class="hero" id="hero" aria-live="polite"></div></section>
 <section class="wrap board" id="board" aria-live="polite"></section>
 </main>
+<footer>
+<span>Raw data:</span>
+<a href="/api/board">board.json</a>
+<a href="/api/graph">graph.json</a>
+<a href="/api/roadmap">roadmap.json</a>
+</footer>
 <script>
-const readOnly = ${JSON.stringify(readOnly)};
-const statuses = ["pending", "in-progress", "review", "done", "blocked", "deferred", "cancelled"];
+var DISPLAY_ORDER = ["pending", "in-progress", "review", "done", "deferred", "cancelled"];
+var DIMMED = { "done": true, "deferred": true, "cancelled": true };
+var TERMINAL = { "done": true, "deferred": true, "cancelled": true };
+var LABELS = { "pending": "Pending", "in-progress": "In Progress", "review": "Review", "done": "Done", "deferred": "Deferred", "cancelled": "Cancelled" };
+var STALL_MS = 3 * 60 * 1000;
+var WINDOW_MS = 10 * 60 * 1000;
 
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs)) {
+var cardIndex = new Map();
+var columnBody = new Map();
+var columnCount = new Map();
+var prevDone = new Set();
+var completions = [];
+var lastActivityAt = Date.now();
+var lastEventAt = 0;
+var connected = false;
+var firstRender = true;
+var heroSig = "";
+var lastData = null;
+
+function el(tag, attrs, children) {
+  var node = document.createElement(tag);
+  attrs = attrs || {};
+  for (var key in attrs) {
+    var value = attrs[key];
     if (key === "class") node.className = value;
     else if (key === "text") node.textContent = value;
-    else if (key === "disabled" && value) node.disabled = true;
-    else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2), value);
     else if (value !== undefined && value !== false) node.setAttribute(key, String(value));
   }
-  for (const child of children) node.append(child);
+  (children || []).forEach(function (c) { node.append(c); });
   return node;
 }
 
-function metric(value, label) {
-  return el("div", { class: "metric" }, [
-    el("strong", { text: String(value) }),
-    el("span", { text: label }),
-  ]);
+function signature(task) {
+  return [task.id, task.title, task.priority, task.status, task.ready, task.subtaskProgress.done, task.subtaskProgress.total].join("|");
 }
 
-async function setStatus(id, status) {
-  const response = await fetch("/api/tasks/status", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, status }),
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || "Could not update task status");
+function fillCard(card, task) {
+  card.className = "card " + task.priority + (TERMINAL[task.status] ? " terminal" : "");
+  var pct = task.subtaskProgress.total > 0 ? Math.round((task.subtaskProgress.done / task.subtaskProgress.total) * 100) : 0;
+  var children = [
+    el("div", { class: "card-head" }, [
+      el("span", { class: "id-pill", text: "#" + task.id }),
+      el("span", { class: "prio-pill", text: task.priority }),
+    ]),
+    el("p", { class: "card-title", text: task.title }),
+    el("div", { class: "chips" }, [
+      el("span", { class: "chip " + (task.ready ? "ready" : "blocked"), text: task.ready ? "ready" : "blocked" }),
+      el("span", { class: "chip", text: "subtasks " + task.subtaskProgress.done + "/" + task.subtaskProgress.total }),
+    ]),
+  ];
+  if (task.subtaskProgress.total > 0) {
+    children.push(el("div", { class: "subbar" }, [el("span", { style: "width:" + pct + "%" })]));
   }
+  card.replaceChildren.apply(card, children);
 }
 
-function renderCard(task) {
-  const card = el("article", { class: "card " + task.priority });
-  card.append(el("p", { class: "card-title", text: "#" + task.id + " " + task.title }));
-  const chips = el("div", { class: "chips" }, [
-    el("span", { class: "chip", text: task.priority }),
-    el("span", { class: "chip " + (task.ready ? "ready" : "blocked"), text: task.ready ? "ready" : "blocked" }),
-    el("span", { class: "chip", text: "subtasks " + task.subtaskProgress.done + "/" + task.subtaskProgress.total }),
-  ]);
-  card.append(chips);
-  const select = el("select", {
-    class: "status-select",
-    disabled: readOnly,
-    onchange: async (event) => {
-      const previous = task.status;
-      try {
-        await setStatus(task.id, event.target.value);
-        await load();
-      } catch (error) {
-        event.target.value = previous;
-        alert(error instanceof Error ? error.message : String(error));
-      }
-    },
+function flash(node, cls) {
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
+  node.addEventListener("animationend", function handler() {
+    node.classList.remove(cls);
+    node.removeEventListener("animationend", handler);
   });
-  for (const status of statuses) {
-    const option = el("option", { value: status, text: status });
-    option.selected = status === task.status;
-    select.append(option);
-  }
-  card.append(select);
-  return card;
 }
 
-function render(data) {
-  const board = document.getElementById("board");
-  const metrics = document.getElementById("metrics");
+function ensureSkeleton() {
+  if (columnBody.size > 0) return;
+  var board = document.getElementById("board");
   board.replaceChildren();
-  metrics.replaceChildren();
-  const tasks = data.columns.flatMap((column) => column.tasks);
-  metrics.append(
-    metric(tasks.length, "tasks"),
-    metric(tasks.filter((task) => task.ready && task.status === "pending").length, "ready pending"),
-    metric(tasks.filter((task) => task.priority === "high").length, "high priority"),
-    metric(tasks.filter((task) => task.status === "done").length, "done"),
-    metric(tasks.reduce((sum, task) => sum + task.subtaskProgress.total, 0), "subtasks"),
-  );
-  for (const column of data.columns) {
-    const section = el("section", { class: "column" });
-    section.append(el("h2", {}, [
-      el("span", { text: column.status.replace("-", " ") }),
-      el("span", { class: "count", text: String(column.tasks.length) }),
-    ]));
-    if (column.tasks.length === 0) {
-      section.append(el("div", { class: "empty", text: "No tasks" }));
-    } else {
-      for (const task of column.tasks) section.append(renderCard(task));
-    }
+  DISPLAY_ORDER.forEach(function (status) {
+    var count = el("span", { class: "count", text: "0" });
+    var body = el("div", {});
+    var section = el("section", { class: "column col-" + status + (DIMMED[status] ? " dimmed" : "") }, [
+      el("h2", {}, [
+        el("span", { class: "col-name" }, [el("span", { class: "col-accent" }), el("span", { text: LABELS[status] })]),
+        count,
+      ]),
+      body,
+    ]);
+    columnBody.set(status, body);
+    columnCount.set(status, count);
     board.append(section);
+  });
+}
+
+function applyState(data) {
+  lastData = data;
+  ensureSkeleton();
+  var tasks = data.columns.reduce(function (all, col) { return all.concat(col.tasks); }, []);
+  var incoming = new Set(tasks.map(function (t) { return String(t.id); }));
+  var now = Date.now();
+  var activity = false;
+
+  var doneNow = new Set();
+  tasks.forEach(function (t) { if (t.status === "done") doneNow.add(String(t.id)); });
+  doneNow.forEach(function (id) { if (!prevDone.has(id)) completions.push(now); });
+  prevDone = doneNow;
+
+  tasks.forEach(function (t) {
+    var id = String(t.id);
+    var sig = signature(t);
+    var existing = cardIndex.get(id);
+    if (!existing) {
+      var node = el("article", {});
+      fillCard(node, t);
+      if (!firstRender) node.classList.add("card--enter");
+      cardIndex.set(id, { node: node, status: t.status, sig: sig });
+      activity = true;
+    } else {
+      if (existing.sig !== sig) { fillCard(existing.node, t); existing.sig = sig; }
+      if (existing.status !== t.status) {
+        existing.status = t.status;
+        if (!firstRender) flash(existing.node, "card--moved");
+        activity = true;
+      }
+    }
+  });
+
+  cardIndex.forEach(function (entry, id) { if (!incoming.has(id)) cardIndex.delete(id); });
+
+  if (activity) lastActivityAt = now;
+
+  DISPLAY_ORDER.forEach(function (status) {
+    var colTasks = tasks.filter(function (t) { return t.status === status; });
+    columnCount.get(status).textContent = String(colTasks.length);
+    var body = columnBody.get(status);
+    if (colTasks.length === 0) {
+      body.replaceChildren(el("div", { class: "empty", text: "—" }));
+    } else {
+      var frag = document.createDocumentFragment();
+      colTasks.forEach(function (t) { frag.append(cardIndex.get(String(t.id)).node); });
+      body.replaceChildren(frag);
+    }
+  });
+
+  renderMomentum(tasks, now);
+  renderHero(tasks, now);
+  firstRender = false;
+}
+
+function sparkline() {
+  var now = Date.now();
+  var buckets = new Array(10).fill(0);
+  completions.forEach(function (ts) {
+    var age = now - ts;
+    if (age <= WINDOW_MS) {
+      var idx = 9 - Math.floor(age / (WINDOW_MS / 10));
+      if (idx >= 0 && idx < 10) buckets[idx] += 1;
+    }
+  });
+  var max = Math.max(1, Math.max.apply(null, buckets));
+  var w = 92, h = 26;
+  var points = buckets.map(function (v, i) {
+    var x = (i / 9) * w;
+    var y = h - (v / max) * (h - 3) - 1.5;
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "spark");
+  svg.setAttribute("width", String(w));
+  svg.setAttribute("height", String(h));
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  var line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  line.setAttribute("points", points);
+  svg.append(line);
+  return svg;
+}
+
+function tile(label, valueNode, extraClass, id) {
+  var attrs = { class: "tile" + (extraClass ? " " + extraClass : "") };
+  if (id) attrs.id = id;
+  return el("div", attrs, [el("span", { class: "label", text: label }), valueNode]);
+}
+
+function renderMomentum(tasks, now) {
+  var total = tasks.length;
+  var done = tasks.filter(function (t) { return t.status === "done"; }).length;
+  var active = tasks.filter(function (t) { return t.status === "in-progress"; }).length;
+  var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  var recent = completions.filter(function (ts) { return now - ts <= WINDOW_MS; }).length;
+  var stalled = active > 0 && (now - lastActivityAt) > STALL_MS;
+
+  var fill = el("div", { class: "progress-fill", style: "transform:scaleX(" + (pct / 100) + ")" });
+  var progressTile = el("div", { class: "tile" }, [
+    el("span", { class: "label", text: "Progress " + done + "/" + total + " (" + pct + "%)" }),
+    el("div", { class: "progress-track" }, [fill]),
+  ]);
+
+  var activeVal = el("span", { class: "value", text: String(active) });
+  var doneVal = el("span", { class: "value" });
+  doneVal.append(document.createTextNode(String(recent)), el("small", { text: " /10m" }));
+  var stallVal = el("span", { class: "value", text: stalled ? "stalled" : (active > 0 ? "working" : "idle") });
+
+  var momentum = document.getElementById("momentum");
+  momentum.replaceChildren(
+    progressTile,
+    tile("Active now", activeVal),
+    tile("Completed", doneVal),
+    tile("Throughput", sparkline()),
+    tile("State", stallVal, stalled ? "stall is-stalled" : "stall")
+  );
+}
+
+function heroCard(task) {
+  return el("div", { class: "hero-card" }, [
+    el("div", { class: "id-pill", text: "#" + task.id + " \\u00b7 " + task.priority }),
+    el("div", { class: "t", text: task.title }),
+  ]);
+}
+
+function renderHero(tasks, now) {
+  var active = tasks.filter(function (t) { return t.status === "in-progress"; });
+  var stalled = active.length > 0 && (now - lastActivityAt) > STALL_MS;
+  var sig = stalled + "|" + active.map(function (t) { return signature(t); }).join("~");
+  if (sig === heroSig) return;
+  heroSig = sig;
+
+  var hero = document.getElementById("hero");
+  hero.className = "hero" + (active.length === 0 ? " idle" : "") + (stalled ? " stalled" : "");
+  var labelText = active.length === 0 ? "Idle" : (stalled ? "Stalled" : "Working now");
+  var head = el("div", { class: "hero-head" }, [
+    el("span", { class: "work-dot" }),
+    el("span", { class: "label", text: labelText }),
+  ]);
+  if (active.length === 0) {
+    hero.replaceChildren(head, el("div", { class: "hero-idle-msg", text: "No task in progress." }));
+  } else {
+    var cards = el("div", { class: "hero-cards" }, active.map(heroCard));
+    hero.replaceChildren(head, cards);
   }
-  document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
 }
 
-async function load() {
-  const response = await fetch("/api/board");
+function updateHeartbeat() {
+  var hb = document.getElementById("heartbeat");
+  var text = document.getElementById("hb-text");
+  if (!connected) {
+    hb.className = "heartbeat down";
+    text.textContent = "disconnected";
+    return;
+  }
+  hb.className = "heartbeat live";
+  if (lastEventAt === 0) { text.textContent = "live"; return; }
+  var secs = Math.round((Date.now() - lastEventAt) / 1000);
+  text.textContent = secs < 2 ? "live" : "last event " + secs + "s ago";
+}
+
+function tick() {
+  updateHeartbeat();
+  if (lastData) {
+    renderMomentum(lastData.columns.reduce(function (a, c) { return a.concat(c.tasks); }, []), Date.now());
+    renderHero(lastData.columns.reduce(function (a, c) { return a.concat(c.tasks); }, []), Date.now());
+  }
+}
+
+async function fetchAndApply() {
+  var response = await fetch("/api/board");
   if (!response.ok) throw new Error("Could not load board");
-  render(await response.json());
+  applyState(await response.json());
 }
 
-load().catch((error) => {
+function initTheme() {
+  var stored = null;
+  try { stored = localStorage.getItem("impcom-theme"); } catch (e) {}
+  var theme = stored || "dark";
+  document.documentElement.setAttribute("data-theme", theme);
+  var btn = document.getElementById("theme-toggle");
+  btn.textContent = theme === "dark" ? "Light" : "Dark";
+  btn.addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    btn.textContent = next === "dark" ? "Light" : "Dark";
+    try { localStorage.setItem("impcom-theme", next); } catch (e) {}
+  });
+}
+
+initTheme();
+fetchAndApply().catch(function (error) {
   document.getElementById("board").replaceChildren(el("p", { class: "error", text: error.message }));
 });
 
-new EventSource("/events").onmessage = () => load().catch(() => undefined);
+var source = new EventSource("/events");
+source.onopen = function () { connected = true; updateHeartbeat(); };
+source.onerror = function () { connected = false; updateHeartbeat(); };
+source.onmessage = function () { lastEventAt = Date.now(); updateHeartbeat(); fetchAndApply().catch(function () {}); };
+
+setInterval(tick, 1000);
 </script>
 </body>
 </html>`;
