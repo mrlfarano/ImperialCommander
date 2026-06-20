@@ -36,7 +36,7 @@ import {
   removeTaskCommand,
 } from "../commands/subtasks.js";
 import { syncCommand } from "../commands/sync.js";
-import { tableCommand } from "../commands/table.js";
+import { tableCommand, watchTaskTable } from "../commands/table.js";
 import {
   addTagCommand,
   copyTagCommand,
@@ -730,6 +730,7 @@ export function createProgram(): Command {
     .option("--json", "Shortcut for --format json")
     .option("--no-color", "Disable ANSI color")
     .option("--wide", "Disable title truncation")
+    .option("--watch", "Re-render when the task store changes")
     .action(
       async (
         query: string | undefined,
@@ -749,31 +750,35 @@ export function createProgram(): Command {
           json?: boolean;
           color?: boolean;
           wide?: boolean;
+          watch?: boolean;
         },
       ) => {
         const globalOptions = collectGlobalOptions(program);
-        console.log(
-          await tableCommand({
-            query,
-            status: options.status,
-            priority: options.priority,
-            ready: options.ready,
-            blocked: options.blocked,
-            hasSubtasks: options.hasSubtasks,
-            noSubtasks: options.subtasks === false,
-            allTags: options.allTags,
-            limit: options.limit,
-            minComplexity: options.minComplexity,
-            sort: options.sort,
-            groupBy: options.groupBy,
-            format: options.format,
-            json: options.json,
-            color: options.color,
-            wide: options.wide,
-            file: globalOptions.file,
-            tag: globalOptions.tag,
-          }),
-        );
+        const tableOptions = {
+          query,
+          status: options.status,
+          priority: options.priority,
+          ready: options.ready,
+          blocked: options.blocked,
+          hasSubtasks: options.hasSubtasks,
+          noSubtasks: options.subtasks === false,
+          allTags: options.allTags,
+          limit: options.limit,
+          minComplexity: options.minComplexity,
+          sort: options.sort,
+          groupBy: options.groupBy,
+          format: options.format,
+          json: options.json,
+          color: options.color,
+          wide: options.wide,
+          file: globalOptions.file,
+          tag: globalOptions.tag,
+        };
+        if (options.watch) {
+          await watchTaskTable(tableOptions);
+          return;
+        }
+        console.log(await tableCommand(tableOptions));
       },
     );
 

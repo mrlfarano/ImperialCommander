@@ -1,5 +1,6 @@
+import { watch } from "node:fs";
 import { TaskPrioritySchema, TaskStatusSchema } from "../schemas/index.js";
-import { FileTaskRepository } from "../storage/index.js";
+import { FileTaskRepository, resolveTaskStorePath } from "../storage/index.js";
 import { type FormatTaskTableOptions, formatTaskTable } from "../table/format-table.js";
 import { type BuildTaskTableOptions, buildTaskTable } from "../table/task-table.js";
 import type { TaskCommandOptions } from "./tasks.js";
@@ -94,4 +95,39 @@ function parseEnum<T extends readonly string[]>(
     return value as T[number];
   }
   throw new Error(`Invalid ${flag}. Use ${allowed.join(", ")}.`);
+}
+
+export interface WatchTableOptions {
+  once?: boolean;
+  write?: (text: string) => void;
+  signal?: AbortSignal;
+}
+
+export async function watchTaskTable(
+  options: TableCommandOptions,
+  watchOptions: WatchTableOptions = {},
+): Promise<void> {
+  const write = watchOptions.write ?? ((text: string) => process.stdout.write(`${text}\n`));
+  const render = async () => {
+    write(await tableCommand(options));
+  };
+
+  await render();
+
+  if (watchOptions.once) {
+    return;
+  }
+
+  const storePath = resolveTaskStorePath({ storePath: options.file });
+
+  await new Promise<void>((resolve) => {
+    const watcher = watch(storePath, { persistent: true }, () => {
+      render().catch(() => undefined);
+    });
+    const stop = () => {
+      watcher.close();
+      resolve();
+    };
+    watchOptions.signal?.addEventListener("abort", stop, { once: true });
+  });
 }

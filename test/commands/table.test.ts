@@ -1,7 +1,7 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { tableCommand } from "../../src/commands/table.js";
+import { tableCommand, watchTaskTable } from "../../src/commands/table.js";
 import type { Task } from "../../src/schemas/index.js";
 import { FileTaskRepository } from "../../src/storage/index.js";
 
@@ -53,6 +53,16 @@ describe("table command", () => {
     await expect(tableCommand({ file: storePath, json: true, format: "csv" })).rejects.toThrow(
       /--json or --format/,
     );
+  });
+
+  it("watches the store and renders once in once-mode", async () => {
+    const renders: string[] = [];
+    await watchTaskTable(
+      { file: storePath, color: false },
+      { once: true, write: (text) => renders.push(text) },
+    );
+    expect(renders).toHaveLength(1);
+    expect(renders[0]).toContain("TASKS · master");
   });
 
   function task(id: number, overrides: Partial<Task> = {}): Task {
