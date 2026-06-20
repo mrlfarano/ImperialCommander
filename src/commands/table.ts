@@ -55,6 +55,10 @@ export function parseTableOptions(options: TableCommandOptions): {
   if (priority && !priority.success) {
     throw new Error("Invalid --priority. Use high, medium, or low.");
   }
+  if (options.json && options.format && options.format !== "json") {
+    throw new Error("Use either --json or --format, not both.");
+  }
+
   const sort = parseEnum(options.sort, SORT_FIELDS, "--sort");
   const groupBy = parseEnum(options.groupBy, GROUP_FIELDS, "--group-by");
   const format = options.json

@@ -33,6 +33,28 @@ describe("table command", () => {
     );
   });
 
+  it("rejects an invalid sort field", async () => {
+    await expect(tableCommand({ file: storePath, sort: "nope" })).rejects.toThrow(/Invalid --sort/);
+  });
+
+  it("rejects an invalid format", async () => {
+    await expect(tableCommand({ file: storePath, format: "xml" })).rejects.toThrow(
+      /Invalid --format/,
+    );
+  });
+
+  it("rejects --ready combined with --blocked", async () => {
+    await expect(tableCommand({ file: storePath, ready: true, blocked: true })).rejects.toThrow(
+      /--ready or --blocked/,
+    );
+  });
+
+  it("rejects --json combined with a conflicting --format", async () => {
+    await expect(tableCommand({ file: storePath, json: true, format: "csv" })).rejects.toThrow(
+      /--json or --format/,
+    );
+  });
+
   function task(id: number, overrides: Partial<Task> = {}): Task {
     return {
       id,
