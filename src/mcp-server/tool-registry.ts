@@ -35,6 +35,7 @@ import {
   removeTaskCommand,
 } from "../commands/subtasks.js";
 import { syncCommand } from "../commands/sync.js";
+import { tableCommand } from "../commands/table.js";
 import {
   addTagCommand,
   copyTagCommand,
@@ -524,6 +525,28 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       limit: optionalNumber(args.limit),
       sort: optionalString(args.sort) as never,
       json: booleanArg(args.json),
+    }),
+  ),
+  table: tool("table", false, async (args) =>
+    tableCommand({
+      file: optionalString(args.file),
+      tag: optionalString(args.tag),
+      query: optionalString(args.query),
+      status: optionalString(args.status),
+      priority: optionalString(args.priority),
+      ready: booleanArg(args.ready),
+      blocked: booleanArg(args.blocked),
+      hasSubtasks: booleanArg(args.hasSubtasks),
+      noSubtasks: booleanArg(args.noSubtasks),
+      allTags: booleanArg(args.allTags),
+      limit: optionalNumber(args.limit),
+      minComplexity: optionalNumber(args.minComplexity),
+      sort: optionalString(args.sort),
+      groupBy: optionalString(args.groupBy),
+      format: optionalString(args.format),
+      json: booleanArg(args.json),
+      color: booleanArg(args.color),
+      wide: booleanArg(args.wide),
     }),
   ),
   export: tool("export", true, async (args) =>

@@ -36,6 +36,7 @@ import {
   removeTaskCommand,
 } from "../commands/subtasks.js";
 import { syncCommand } from "../commands/sync.js";
+import { tableCommand } from "../commands/table.js";
 import {
   addTagCommand,
   copyTagCommand,
@@ -699,6 +700,76 @@ export function createProgram(): Command {
           await searchCommand({
             ...options,
             query: query ?? options.query,
+            file: globalOptions.file,
+            tag: globalOptions.tag,
+          }),
+        );
+      },
+    );
+
+  program
+    .command("table")
+    .description("Render a color-coded task table with a tracking dashboard")
+    .argument("[query]", "Search query")
+    .option("--status <status>", "Filter by status")
+    .option("--priority <priority>", "Filter by priority")
+    .option("--ready", "Only tasks with satisfied dependencies")
+    .option("--blocked", "Only tasks with unsatisfied dependencies")
+    .option("--has-subtasks", "Only tasks with subtasks")
+    .option("--no-subtasks", "Only tasks without subtasks")
+    .option("--all-tags", "Include all tags")
+    .option("--limit <count>", "Maximum rows", Number.parseInt)
+    .option(
+      "--min-complexity <score>",
+      "Only tasks at or above a complexity score",
+      Number.parseInt,
+    )
+    .option("--sort <field>", "id, priority, status, title, or complexity")
+    .option("--group-by <field>", "status, priority, complexity, or tag")
+    .option("--format <format>", "pretty, json, csv, or markdown")
+    .option("--json", "Shortcut for --format json")
+    .option("--no-color", "Disable ANSI color")
+    .option("--wide", "Disable title truncation")
+    .action(
+      async (
+        query: string | undefined,
+        options: {
+          status?: string;
+          priority?: string;
+          ready?: boolean;
+          blocked?: boolean;
+          hasSubtasks?: boolean;
+          subtasks?: boolean;
+          allTags?: boolean;
+          limit?: number;
+          minComplexity?: number;
+          sort?: string;
+          groupBy?: string;
+          format?: string;
+          json?: boolean;
+          color?: boolean;
+          wide?: boolean;
+        },
+      ) => {
+        const globalOptions = collectGlobalOptions(program);
+        console.log(
+          await tableCommand({
+            query,
+            status: options.status,
+            priority: options.priority,
+            ready: options.ready,
+            blocked: options.blocked,
+            hasSubtasks: options.hasSubtasks,
+            noSubtasks: options.subtasks === false,
+            allTags: options.allTags,
+            limit: options.limit,
+            minComplexity: options.minComplexity,
+            sort: options.sort,
+            groupBy: options.groupBy,
+            format: options.format,
+            json: options.json,
+            color: options.color,
+            wide: options.wide,
             file: globalOptions.file,
             tag: globalOptions.tag,
           }),
