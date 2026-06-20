@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - 2026-06-20
+
+- Added a styled local Kanban UI for `impcom board`, including board metrics, status columns, task cards, ready/blocked indicators, subtask progress, and read-only/read-write handling.
+- Kept the existing board, graph, roadmap, and task JSON endpoints available from the visualization server.
+
 ## 0.1.0 - 2026-06-19
 
 Initial implementation.
