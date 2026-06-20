@@ -124,6 +124,36 @@ Filters mirror `impcom search` (`--status`, `--priority`, `--ready`/`--blocked`,
 plus `--min-complexity`, `--sort complexity`, `--group-by`, `--format`,
 `--no-color`, and `--wide`.
 
+## Live monitor (`impcom board`)
+
+Run `impcom board` to start a local, read-only web monitor that shows the system
+working through the task store in real time:
+
+```bash
+impcom board                        # start the monitor, prints the URL
+impcom board --port 4399            # bind a fixed port
+impcom board --read-only            # disable server-side writes (recommended)
+impcom board --view board           # text summary instead of the server
+impcom board --view graph           # dependency-graph summary
+impcom board --json                 # structured board/graph data
+```
+
+The web view is built for glanceability — leave it open and watch progress:
+
+- **Active now** hero surfaces in-progress tasks with a working indicator, and
+  flips to a **stalled** state when nothing has moved for a few minutes.
+- **Momentum strip** shows overall progress, active count, completions in the
+  last 10 minutes, and a throughput sparkline.
+- **Live updates** stream over Server-Sent Events and patch only the cards that
+  changed, animating column transitions (honors `prefers-reduced-motion`).
+- **Connection heartbeat** indicates whether the event stream is live, so a
+  silently dropped connection is obvious.
+- **Dark theme by default** with a persisted light toggle; terminal columns
+  (done/deferred/cancelled) are dimmed to keep focus on the active frontier.
+
+Raw `board`, `graph`, and `roadmap` JSON remain available at `/api/board`,
+`/api/graph`, and `/api/roadmap`.
+
 ## Data Model
 
 Imperial Commander stores tasks in a tag-keyed JSON task store. Each task can include:
