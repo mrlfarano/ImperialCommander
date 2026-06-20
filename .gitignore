@@ -9,3 +9,9 @@ yarn-error.log*
 pnpm-debug.log*
 PRD*.md
 TASKS.md
+
+# Local runtime artifacts (agent DB, vector store, workspace state)
+.imperial-commander/
+agentdb.rvf
+agentdb.rvf.lock
+ruvector.db

@@ -1,6 +1,6 @@
 {
   "name": "imperial-commander",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI-driven development task orchestration CLI and agent server.",
   "type": "module",
   "license": "MIT",
