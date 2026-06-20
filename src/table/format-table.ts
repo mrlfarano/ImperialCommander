@@ -134,9 +134,12 @@ function toMarkdown(data: TaskTableData): string {
   const divider = "| --- | --- | --- | --- | --- | --- | --- |";
   const rows = data.rows.map((row) => {
     const cx =
-      row.complexityScore === undefined ? "—" : `${row.complexityScore} (${row.complexityLevel})`;
+      row.complexityScore === undefined || !row.complexityLevel
+        ? "—"
+        : `${row.complexityScore} (${row.complexityLevel})`;
     const sub = row.subtasksTotal === 0 ? "—" : `${row.subtasksDone}/${row.subtasksTotal}`;
-    return `| ${row.id} | ${row.status} | ${row.priority} | ${cx} | ${row.ready ? "yes" : "no"} | ${sub} | ${row.title} |`;
+    const title = row.title.replace(/\|/g, "\\|");
+    return `| ${row.id} | ${row.status} | ${row.priority} | ${cx} | ${row.ready ? "yes" : "no"} | ${sub} | ${title} |`;
   });
   const summary = `**${data.footer.total} tasks** · ${data.footer.percentDone}% done · ${data.footer.ready} ready · ${data.footer.blocked} blocked`;
   return [`### Tasks · ${data.tag}`, "", header, divider, ...rows, "", summary].join("\n");

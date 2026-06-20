@@ -51,7 +51,7 @@ describe("formatTaskTable", () => {
     expect(out).toContain("TASKS · master");
     expect(out).toContain("Payment service");
     expect(out).toContain("NEXT");
-    expect(out).not.toContain("["); // no ANSI codes
+    expect(out).not.toContain("\x1b"); // no ANSI escape codes
   });
 
   it("emits json of the structured data", () => {
@@ -73,5 +73,23 @@ describe("formatTaskTable", () => {
     expect(out).toContain("| ID | Status | Priority | Complexity | Ready | Subtasks | Title |");
     expect(out).toContain("| 2 | in-progress | high | 9 (high) | yes | 2/4 | Payment service |");
     expect(out).toContain("**2 tasks**");
+  });
+
+  it("escapes pipe characters in markdown titles", () => {
+    const piped: TaskTableData = {
+      ...data,
+      rows: [{ ...data.rows[0], title: "Parse | validate" }],
+    };
+    const out = formatTaskTable(piped, { format: "markdown" });
+    expect(out).toContain("Parse \\| validate");
+  });
+
+  it("renders grouped sections in pretty output", () => {
+    const grouped: TaskTableData = {
+      ...data,
+      groups: [{ key: "high", count: 1, rows: [data.rows[0]] }],
+    };
+    const out = formatTaskTable(grouped, { format: "pretty", color: false });
+    expect(out).toContain("high (1)");
   });
 });
