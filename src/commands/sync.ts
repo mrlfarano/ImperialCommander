@@ -1,14 +1,25 @@
 import { FileTaskRepository } from "../storage/index.js";
-import { runExternalSync } from "../sync/sync.js";
+import {
+  type SyncCommandRunner,
+  type SyncProviderName,
+  type SyncScope,
+  runExternalSync,
+} from "../sync/sync.js";
 import type { TaskCommandOptions } from "./tasks.js";
 
 export interface SyncCommandOptions extends TaskCommandOptions {
-  provider?: "github" | "linear" | "jira" | "gitlab" | "local";
+  provider?: SyncProviderName;
   dryRun?: boolean;
   write?: boolean;
   json?: boolean;
   projectRoot?: string;
   mappingPath?: string;
+  board?: string;
+  scope?: SyncScope;
+  assignee?: string;
+  goal?: boolean;
+  hermesCommand?: string;
+  commandRunner?: SyncCommandRunner;
 }
 
 export async function syncCommand(options: SyncCommandOptions = {}): Promise<string> {
@@ -20,11 +31,18 @@ export async function syncCommand(options: SyncCommandOptions = {}): Promise<str
     dryRun: options.write ? false : (options.dryRun ?? true),
     projectRoot: options.projectRoot,
     mappingPath: options.mappingPath,
+    board: options.board,
+    scope: options.scope,
+    assignee: options.assignee,
+    goal: options.goal,
+    hermesCommand: options.hermesCommand,
+    commandRunner: options.commandRunner,
   });
 
   if (options.json) {
     return JSON.stringify(result, null, 2);
   }
 
-  return `${result.dryRun ? "Planned" : "Synced"} ${result.pushed} tasks with ${provider}; pulled ${result.pulled} items.`;
+  const linked = result.linked > 0 ? ` linked ${result.linked} dependencies;` : "";
+  return `${result.dryRun ? "Planned" : "Synced"} ${result.pushed} tasks with ${provider};${linked} pulled ${result.pulled} items.`;
 }

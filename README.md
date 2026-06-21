@@ -17,7 +17,7 @@ It is designed around a local-first workflow: task data lives in readable JSON, 
 | Task loop | `list`, `show`, `next`, `set-status` |
 | Planning tools | `add-task`, `expand`, `expand-all`, `analyze-complexity`, `research` |
 | Organization | `add-tag`, `use-tag`, `move`, `add-dependency`, `validate-dependencies` |
-| Reporting | `search`, `roadmap`, `export`, `generate`, `sync-readme`, `table` |
+| Reporting | `search`, `roadmap`, `export`, `generate`, `sync-readme`, `sync`, `table` |
 | Automation | `autopilot`, `loop`, `watch`, `history`, `undo` |
 | Agent surface | `impcom-mcp` |
 
@@ -48,6 +48,23 @@ impcom init \
   --name "My Project" \
   --description "What this project does"
 ```
+
+To feed the project into Hermes Kanban automatically, enable the integration at
+init time:
+
+```bash
+impcom init \
+  --name "My Project" \
+  --description "What this project does" \
+  --hermes-kanban \
+  --hermes-kanban-board my-project
+```
+
+That writes `.imperial-commander/config.json` with `integrations.hermesKanban`
+enabled. Subsequent task-store writes (`parse-spec`, `add-task`, status changes,
+dependency edits, etc.) debounce into a one-way Imperial Commander → Hermes
+Kanban sync. Imperial Commander remains the planning/source graph; Hermes Kanban
+is the execution/tracking board.
 
 Draft or validate a spec:
 
@@ -89,6 +106,33 @@ impcom export --format markdown --output tasks-report.md
 impcom generate
 impcom sync-readme
 ```
+
+## Hermes Kanban sync
+
+Imperial Commander can feed Hermes Kanban as a read model without replacing the
+Imperial task store:
+
+```bash
+# One-shot sync of open tasks to an existing or new Kanban board
+impcom sync \
+  --provider hermes-kanban \
+  --board my-project \
+  --project-root "$PWD" \
+  --write
+```
+
+The sync uses stable idempotency keys of the form
+`imperial:<project-root>:<tag>:<task-id>`, so re-running it updates the mapping
+without creating duplicate Kanban cards. Dependency edges are linked after cards
+are ensured. Imported cards default to **unassigned**; pass `--assignee <profile>`
+when you intentionally want Hermes workers to pick them up.
+
+Scopes:
+
+- `--scope open` (default for Hermes Kanban): pending/in-progress/review/deferred
+  tasks only.
+- `--scope ready`: open tasks whose dependencies are complete.
+- `--scope all`: every task in the tag.
 
 ## Task analysis (priority + complexity)
 
@@ -223,4 +267,4 @@ Build output is written to `dist/` and intentionally ignored by git.
 
 ## Status
 
-This repository currently contains a local-first implementation with offline-safe skeletons for cloud/team storage, external tracker sync, notifications, and autonomous workflows. Those surfaces are wired and testable, but real third-party service integrations still need production credentials and provider-specific adapters.
+This repository currently contains a local-first implementation with offline-safe skeletons for cloud/team storage, notifications, and autonomous workflows. Hermes Kanban sync is a real local integration: Imperial Commander can create/update Kanban cards and dependency edges through the `hermes` CLI while preserving Imperial as the source task graph. Other third-party tracker providers still need production credentials and provider-specific adapters.

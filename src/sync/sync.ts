@@ -2,9 +2,18 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { type ProjectPathOptions, resolveProjectConfigDir } from "../config/paths.js";
 import type { TaskRepository } from "../storage/index.js";
-import { type SyncProviderName, createSyncAdapter } from "./adapters.js";
+import {
+  type SyncAdapterOptions,
+  type SyncCommandRunner,
+  type SyncProviderName,
+  type SyncScope,
+  createSyncAdapter,
+  filterTasksForSync,
+} from "./adapters.js";
 
-export interface SyncOptions extends ProjectPathOptions {
+export type { SyncCommandRunner, SyncProviderName, SyncScope } from "./adapters.js";
+
+export interface SyncOptions extends ProjectPathOptions, SyncAdapterOptions {
   provider: SyncProviderName;
   tag?: string;
   dryRun?: boolean;
@@ -24,6 +33,7 @@ export interface SyncResult {
   dryRun: boolean;
   pushed: number;
   pulled: number;
+  linked: number;
   mappings: SyncMapping[];
 }
 
@@ -31,17 +41,21 @@ export async function runExternalSync(
   repository: TaskRepository,
   options: SyncOptions,
 ): Promise<SyncResult> {
-  const adapter = createSyncAdapter(options.provider, options.dryRun ?? true);
-  const tasks = await repository.findAll({ tag: options.tag });
+  const adapter = createSyncAdapter(options.provider, options);
+  const scope = options.scope ?? (options.provider === "hermes-kanban" ? "open" : "all");
+  const tasks = filterTasksForSync(await repository.findAll({ tag: options.tag }), scope);
   const existing = await readMappings(options);
   const mappings = [...existing];
   const now = new Date().toISOString();
+  const taskIdToExternalId = new Map<string, string>();
 
   for (const task of tasks) {
     const item = await adapter.push(task);
+    const taskId = String(task.id);
+    taskIdToExternalId.set(taskId, item.externalId);
     const next: SyncMapping = {
       provider: options.provider,
-      taskId: String(task.id),
+      taskId,
       externalId: item.externalId,
       url: item.url,
       lastSyncedAt: now,
@@ -57,6 +71,7 @@ export async function runExternalSync(
     }
   }
 
+  const linked = (await adapter.linkDependencies?.(tasks, taskIdToExternalId)) ?? 0;
   const pulled = await adapter.pull();
 
   if (!options.dryRun) {
@@ -68,6 +83,7 @@ export async function runExternalSync(
     dryRun: options.dryRun ?? true,
     pushed: tasks.length,
     pulled: pulled.length,
+    linked,
     mappings,
   };
 }
