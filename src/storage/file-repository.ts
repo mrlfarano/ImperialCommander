@@ -1,5 +1,6 @@
 import { appendHistoryEntry } from "../history/audit-log.js";
 import type { Task } from "../schemas/index.js";
+import { queueHermesKanbanAutoSync } from "../sync/auto-sync.js";
 import { createStorageChangeEvent, emitStorageChange } from "./change-events.js";
 import type {
   CreateTagOptions,
@@ -255,6 +256,8 @@ export class FileTaskRepository implements TaskRepository {
     } catch {
       // History is audit-only and must not break repository writes.
     }
+
+    queueHermesKanbanAutoSync(this, this.options, event);
   }
 }
 

@@ -267,18 +267,27 @@ export function createProgram(): Command {
     .option("--dry-run", "Print intended actions without writing files")
     .option("--store-tasks-in-vcs", "Track task files in version control")
     .option("--no-store-tasks-in-vcs", "Ignore task files from version control")
+    .option("--hermes-kanban", "Enable Hermes Kanban integration for this project")
+    .option("--hermes-kanban-board <slug>", "Hermes Kanban board slug to feed")
+    .option("--no-hermes-kanban-auto-sync", "Configure Hermes Kanban but leave auto-sync disabled")
     .action(
       async (options: {
         name?: string;
         description?: string;
         dryRun?: boolean;
         storeTasksInVcs?: boolean;
+        hermesKanban?: boolean;
+        hermesKanbanBoard?: string;
+        hermesKanbanAutoSync?: boolean;
       }) => {
         const result = await runInitCommand({
           name: options.name,
           description: options.description,
           dryRun: options.dryRun,
           storeTasksInVcs: options.storeTasksInVcs,
+          hermesKanban: options.hermesKanban,
+          hermesKanbanBoard: options.hermesKanbanBoard,
+          hermesKanbanAutoSync: options.hermesKanbanAutoSync,
           log: (message) => console.log(message),
         });
 
@@ -399,10 +408,21 @@ export function createProgram(): Command {
 
   program
     .command("sync")
-    .description("Run local external-sync adapter skeleton")
-    .option("--provider <provider>", "github, linear, jira, gitlab, or local", "local")
+    .description("Sync tasks to an external read model")
+    .option(
+      "--provider <provider>",
+      "github, linear, jira, gitlab, local, or hermes-kanban",
+      "local",
+    )
     .option("--dry-run", "Plan only")
-    .option("--write", "Write local sync mappings")
+    .option("--write", "Write sync mappings and perform provider writes")
+    .option("--project-root <path>", "Project root for provider-specific metadata")
+    .option("--mapping-path <path>", "Override sync mapping file path")
+    .option("--board <slug>", "Hermes Kanban board slug when provider=hermes-kanban")
+    .option("--scope <scope>", "Sync scope: all, open, or ready")
+    .option("--assignee <profile>", "Optional Hermes profile to assign imported cards")
+    .option("--goal", "Create assigned Hermes Kanban cards in goal mode")
+    .option("--hermes-command <command>", "Hermes executable/path for provider=hermes-kanban")
     .option("--json", "Print JSON")
     .action(async (options: Parameters<typeof syncCommand>[0]) => {
       const globalOptions = collectGlobalOptions(program);

@@ -481,6 +481,11 @@ export const toolRegistry: Record<string, AgentToolDefinition> = {
       json: booleanArg(args.json),
       projectRoot: optionalString(args.projectRoot),
       mappingPath: optionalString(args.mappingPath),
+      board: optionalString(args.board),
+      scope: optionalString(args.scope) as never,
+      assignee: optionalString(args.assignee),
+      goal: booleanArg(args.goal),
+      hermesCommand: optionalString(args.hermesCommand),
     }),
   ),
   notifications: tool("notifications", true, async (args) =>

@@ -16,6 +16,9 @@ export interface InitCommandOptions {
   storeTasksInVcs?: boolean;
   forceInitGit?: boolean;
   skipGit?: boolean;
+  hermesKanban?: boolean;
+  hermesKanbanBoard?: string;
+  hermesKanbanAutoSync?: boolean;
   now?: Date;
   log?: (message: string) => void;
 }
@@ -111,18 +114,7 @@ export async function runInitCommand(options: InitCommandOptions = {}): Promise<
 
   await writeFileIfMissing(
     resolveProjectConfigPath({ projectRoot }),
-    `${JSON.stringify(
-      {
-        ...defaultConfig,
-        project: {
-          ...defaultConfig.project,
-          name: projectName,
-          description: projectDescription,
-        },
-      },
-      null,
-      2,
-    )}\n`,
+    `${JSON.stringify(buildInitialConfig(projectName, projectDescription, options), null, 2)}\n`,
   );
 
   if (!dryRun) {
@@ -155,6 +147,48 @@ function defaultEnvExample(): string {
 # OPENAI_API_KEY=
 # ANTHROPIC_API_KEY=
 `;
+}
+
+function buildInitialConfig(
+  projectName: string,
+  projectDescription: string,
+  options: InitCommandOptions,
+): typeof defaultConfig {
+  const config = {
+    ...defaultConfig,
+    project: {
+      ...defaultConfig.project,
+      name: projectName,
+      description: projectDescription,
+    },
+  };
+
+  if (options.hermesKanban) {
+    config.integrations = {
+      ...defaultConfig.integrations,
+      hermesKanban: {
+        ...defaultConfig.integrations.hermesKanban,
+        enabled: true,
+        board: options.hermesKanbanBoard ?? slugify(projectName),
+        scope: "open",
+        autoSync: options.hermesKanbanAutoSync ?? true,
+        assignee: null,
+        goal: false,
+      },
+    };
+  }
+
+  return config;
+}
+
+function slugify(value: string): string {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "project"
+  );
 }
 
 async function writeReadme(

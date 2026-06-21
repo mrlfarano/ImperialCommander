@@ -12,6 +12,16 @@ export const modelRoleConfigSchema = z.object({
   baseURL: z.string().url().optional(),
 });
 
+const hermesKanbanIntegrationSchema = z.object({
+  enabled: z.boolean(),
+  board: z.string().min(1),
+  scope: z.enum(["all", "open", "ready"]),
+  autoSync: z.boolean(),
+  assignee: z.string().min(1).nullable(),
+  goal: z.boolean(),
+  hermesCommand: z.string().min(1).optional(),
+});
+
 export const projectConfigSchema = z.object({
   project: z.object({
     name: z.string(),
@@ -40,6 +50,9 @@ export const projectConfigSchema = z.object({
   featureFlags: z.object({
     enableCodebaseAnalysis: z.boolean(),
     enableProxy: z.boolean(),
+  }),
+  integrations: z.object({
+    hermesKanban: hermesKanbanIntegrationSchema,
   }),
 });
 
@@ -102,6 +115,16 @@ export const defaultConfig: ProjectConfig = {
   featureFlags: {
     enableCodebaseAnalysis: true,
     enableProxy: false,
+  },
+  integrations: {
+    hermesKanban: {
+      enabled: false,
+      board: "default",
+      scope: "open",
+      autoSync: false,
+      assignee: null,
+      goal: false,
+    },
   },
 };
 

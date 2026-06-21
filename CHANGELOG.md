@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added first-class Hermes Kanban sync via `impcom sync --provider hermes-kanban`, including board creation, idempotent card creation, dependency linking, and sync mappings.
+- Added `impcom init --hermes-kanban` project config so Imperial Commander can automatically feed Hermes Kanban on task-store writes without replacing the Imperial task graph.
+
 ## 0.2.1 - 2026-06-20
 
 - Reworked the `impcom board` web view into a read-only live monitor for watching the system work the task store.
