@@ -65,12 +65,30 @@ export function toAssessment(raw: RawAssessment): TaskAssessment {
   };
 }
 
+export const DEFAULT_ASSESSMENT: TaskAssessment = {
+  priority: "medium",
+  complexity: {
+    score: 5,
+    level: "medium",
+    recommendedSubtasks: 0,
+    reasoning: "Default assessment — no AI provider configured.",
+  },
+};
+
 export async function assessTask(
   assessor: TaskAssessor | undefined,
   input: TaskAssessmentInput,
+  opts?: { requireAi?: boolean },
 ): Promise<TaskAssessment> {
   if (!assessor) {
-    throw new AssessmentRequiredError();
+    if (opts?.requireAi) {
+      throw new AssessmentRequiredError();
+    }
+    console.warn(
+      "[impcom] No AI provider configured — using default priority/complexity. " +
+        "Configure with `impcom models` or use --no-ai flag to suppress this warning.",
+    );
+    return DEFAULT_ASSESSMENT;
   }
   return toAssessment(await assessor(input));
 }

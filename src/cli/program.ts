@@ -676,6 +676,7 @@ export function createProgram(): Command {
     .option("--priority <priority>", "Override the assessed priority (high, medium, low)")
     .option("--prompt <prompt>", "AI generation prompt")
     .option("--research", "Use research role for AI generation")
+    .option("--no-ai", "Skip AI assessment and use defaults (priority: medium, no complexity)")
     .action(
       async (options: {
         title?: string;
@@ -686,6 +687,7 @@ export function createProgram(): Command {
         priority?: "high" | "medium" | "low";
         prompt?: string;
         research?: boolean;
+        noAi?: boolean;
       }) => {
         const globalOptions = collectGlobalOptions(program);
         console.log(

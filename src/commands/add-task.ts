@@ -12,6 +12,7 @@ export interface AddTaskCommandOptions extends TaskCommandOptions {
   priority?: "high" | "medium" | "low";
   prompt?: string;
   research?: boolean;
+  noAi?: boolean;
   aiGenerator?: AddTaskGenerator;
   assessor?: TaskAssessor;
 }

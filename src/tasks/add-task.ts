@@ -14,6 +14,7 @@ export interface AddTaskOptions {
   prompt?: string;
   research?: boolean;
   tag?: string;
+  noAi?: boolean;
   aiGenerator?: AddTaskGenerator;
   assessor?: TaskAssessor;
 }
@@ -78,7 +79,12 @@ export async function addTask(
 
 // Assessment is the source of truth for priority+complexity; an explicit
 // options.priority overrides the assessed priority, otherwise the assessment wins.
+// When options.noAi is true, assessment is skipped entirely and the explicit
+// options.priority (defaulting to "medium") is used with no complexity set.
 async function applyAssessment(base: Task, options: AddTaskOptions): Promise<Task> {
+  if (options.noAi) {
+    return { ...base, priority: options.priority ?? base.priority };
+  }
   const assessment = await assessTask(options.assessor, {
     title: base.title,
     description: base.description,
