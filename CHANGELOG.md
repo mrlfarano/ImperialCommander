@@ -2,8 +2,14 @@
 
 ## Unreleased
 
+## 0.2.2 - 2026-06-26
+
 - Added first-class Hermes Kanban sync via `impcom sync --provider hermes-kanban`, including board creation, idempotent card creation, dependency linking, and sync mappings.
 - Added `impcom init --hermes-kanban` project config so Imperial Commander can automatically feed Hermes Kanban on task-store writes without replacing the Imperial task graph.
+- Added `impcom add-task --no-ai` so manual task creation can skip AI assessment explicitly and use the provided/default priority without writing complexity metadata.
+- Changed manual task and spec parsing assessment fallback to use default medium priority/complexity when no AI provider is configured instead of blocking task creation.
+- Fixed Windows-local test and runtime edge cases for MCP project-root resolution, telemetry user-id persistence failures, and Hermes Kanban auto-sync command execution.
+- Added regression coverage for the no-provider fallback and the `--no-ai` add-task path.
 
 ## 0.2.1 - 2026-06-20
 

@@ -48,10 +48,40 @@ describe("add task", () => {
     expect(result.task.complexity?.level).toBe("low");
   });
 
-  it("throws when no assessor is configured", async () => {
-    await expect(addTask(repository, { title: "X", description: "Y" })).rejects.toThrow(
-      /requires an AI provider/,
-    );
+  it("uses default assessment when no assessor is configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = await addTask(repository, { title: "X", description: "Y" });
+
+    expect(result.task).toMatchObject({
+      priority: "medium",
+      complexity: {
+        score: 5,
+        level: "medium",
+        recommendedSubtasks: 0,
+        reasoning: "Default assessment — no AI provider configured.",
+      },
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("No AI provider configured"));
+
+    warn.mockRestore();
+  });
+
+  it("skips assessment when noAi is set", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = await addTask(repository, {
+      title: "No AI",
+      description: "Use manual defaults",
+      noAi: true,
+      priority: "high",
+    });
+
+    expect(result.task.priority).toBe("high");
+    expect(result.task.complexity).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
   });
 
   it("requires manual title and description when no prompt is supplied", async () => {

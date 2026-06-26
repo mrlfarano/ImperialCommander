@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import {
   createErrorEnvelope,
@@ -51,14 +52,46 @@ describe("mcp server", () => {
   });
 
   it("resolves absolute project roots from env, args, session, and file URIs", () => {
-    expect(resolveAgentProjectRoot({ env: { IMPERIAL_PROJECT_ROOT: "/tmp/project" } })).toBe(
-      "/tmp/project",
+    const envRoot = join(tmpdir(), "imperial-env-project");
+    const argsRoot = join(tmpdir(), "imperial-args-project");
+    const sessionRoot = join(tmpdir(), "imperial-session-project");
+
+    expect(resolveAgentProjectRoot({ env: { IMPERIAL_PROJECT_ROOT: envRoot } })).toBe(envRoot);
+    expect(resolveAgentProjectRoot({ args: { projectRoot: pathToFileURL(argsRoot).href } })).toBe(
+      argsRoot,
     );
-    expect(resolveAgentProjectRoot({ args: { projectRoot: "file:///tmp/project" } })).toBe(
-      "/tmp/project",
-    );
-    expect(resolveAgentProjectRoot({ sessionRoot: "/tmp/session" })).toBe("/tmp/session");
+    expect(resolveAgentProjectRoot({ sessionRoot })).toBe(sessionRoot);
     expect(() => resolveAgentProjectRoot({ args: { projectRoot: "relative" } })).toThrow(
+      /absolute/,
+    );
+  });
+
+  it("prefers env project root over args and session roots", () => {
+    const envRoot = join(tmpdir(), "imperial-root-env");
+    const argsRoot = join(tmpdir(), "imperial-root-args");
+    const sessionRoot = join(tmpdir(), "imperial-root-session");
+
+    expect(
+      resolveAgentProjectRoot({
+        env: { IMPERIAL_PROJECT_ROOT: envRoot },
+        args: { projectRoot: argsRoot },
+        sessionRoot,
+      }),
+    ).toBe(envRoot);
+  });
+
+  it("accepts encoded absolute paths with spaces", () => {
+    const root = join(tmpdir(), "imperial project with spaces");
+    const encoded = root.replaceAll(" ", "%20");
+
+    expect(resolveAgentProjectRoot({ args: { projectRoot: encoded } })).toBe(root);
+  });
+
+  it("rejects missing and relative project roots", () => {
+    expect(() => resolveAgentProjectRoot({ env: {}, args: {}, sessionRoot: undefined })).toThrow(
+      /absolute project root/,
+    );
+    expect(() => resolveAgentProjectRoot({ args: { projectRoot: "file:relative" } })).toThrow(
       /absolute/,
     );
   });

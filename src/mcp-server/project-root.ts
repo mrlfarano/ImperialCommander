@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface ProjectRootOptions {
@@ -19,7 +20,7 @@ export function resolveAgentProjectRoot(options: ProjectRootOptions = {}): strin
 
   const decoded = value.startsWith("file://") ? fileURLToPath(value) : decodeURIComponent(value);
 
-  if (!decoded.startsWith("/")) {
+  if (!isAbsolute(decoded)) {
     throw new Error(`Project root must be absolute: ${decoded}`);
   }
 

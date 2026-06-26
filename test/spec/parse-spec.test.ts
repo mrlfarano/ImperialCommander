@@ -52,8 +52,22 @@ describe("parse spec", () => {
     expect(tasks[0].complexity).toMatchObject({ score: 6, level: "medium" });
   });
 
-  it("throws when no assessor is configured", async () => {
-    await expect(parseSpecFile(repository, specPath)).rejects.toThrow(/requires an AI provider/);
+  it("uses default assessments when no assessor is configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = await parseSpecFile(repository, specPath);
+
+    expect(result.tasks).toHaveLength(3);
+    expect(result.tasks.map((task) => task.priority)).toEqual(["medium", "medium", "medium"]);
+    expect(result.tasks[0].complexity).toMatchObject({
+      score: 5,
+      level: "medium",
+      recommendedSubtasks: 0,
+      reasoning: "Default assessment — no AI provider configured.",
+    });
+    expect(warn).toHaveBeenCalledTimes(3);
+
+    warn.mockRestore();
   });
 
   it("guards existing task stores unless append or force is used", async () => {

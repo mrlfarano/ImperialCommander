@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { basename, resolve } from "node:path";
+import { basename, extname, resolve } from "node:path";
 import type { Task } from "../schemas/index.js";
 
 export type SyncProviderName = "github" | "linear" | "jira" | "gitlab" | "local" | "hermes-kanban";
@@ -371,8 +371,10 @@ export function filterTasksForSync(tasks: Task[], scope: SyncScope): Task[] {
 }
 
 async function defaultCommandRunner(command: string, args: string[]): Promise<SyncCommandResult> {
+  const invocation = resolveCommandInvocation(command, args);
+
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(invocation.command, invocation.args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
 
@@ -389,6 +391,17 @@ async function defaultCommandRunner(command: string, args: string[]): Promise<Sy
       resolvePromise({ exitCode: code ?? 0, stdout, stderr });
     });
   });
+}
+
+function resolveCommandInvocation(
+  command: string,
+  args: string[],
+): { command: string; args: string[] } {
+  if (process.platform === "win32" && [".js", ".mjs", ".cjs"].includes(extname(command))) {
+    return { command: process.execPath, args: [command, ...args] };
+  }
+
+  return { command, args };
 }
 
 function extractJson(text: string): unknown {

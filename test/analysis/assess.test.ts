@@ -1,5 +1,6 @@
 import {
   AssessmentRequiredError,
+  DEFAULT_ASSESSMENT,
   type TaskAssessmentInput,
   assessMany,
   assessTask,
@@ -46,8 +47,19 @@ describe("assessor core", () => {
     expect(assessment.complexity.level).toBe("low");
   });
 
-  it("throws AssessmentRequiredError when no assessor is supplied", async () => {
-    await expect(assessTask(undefined, input)).rejects.toBeInstanceOf(AssessmentRequiredError);
+  it("uses a default assessment when no assessor is supplied", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await expect(assessTask(undefined, input)).resolves.toEqual(DEFAULT_ASSESSMENT);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("No AI provider configured"));
+
+    warn.mockRestore();
+  });
+
+  it("throws AssessmentRequiredError when AI is required", async () => {
+    await expect(assessTask(undefined, input, { requireAi: true })).rejects.toBeInstanceOf(
+      AssessmentRequiredError,
+    );
   });
 
   it("assesses many inputs in order", async () => {
