@@ -1,4 +1,4 @@
-import { chmod, mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { computeTokenCost } from "../../src/telemetry/cost.js";
@@ -53,19 +53,43 @@ describe("user id", () => {
   });
 
   it("warns and returns an in-memory id when persistence fails", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "imperial-user-id-readonly-"));
-    await chmod(dir, 0o400);
+    const dir = await mkdtemp(join(tmpdir(), "imperial-user-id-unwritable-"));
+    const blocker = join(dir, "missing");
+    await writeFile(blocker, "not a directory", "utf8");
     const warnings: string[] = [];
 
     const id = await getOrCreateUserId({
-      userIdPath: join(dir, "missing", "user-id"),
+      userIdPath: join(blocker, "user-id"),
       warn: (message) => warnings.push(message),
     });
 
     expect(id).toBeTruthy();
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toMatch(/using in-memory id/);
-    await chmod(dir, 0o700);
+  });
+
+  it("warns and returns an in-memory id when reading an existing path fails", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "imperial-user-id-directory-"));
+    const warnings: string[] = [];
+
+    const id = await getOrCreateUserId({
+      userIdPath: dir,
+      warn: (message) => warnings.push(message),
+    });
+
+    expect(id).toBeTruthy();
+    expect(warnings).toEqual(["Could not read telemetry user id; using in-memory id."]);
+  });
+
+  it("replaces a blank persisted user id with a new persisted value", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "imperial-user-id-blank-"));
+    const userIdPath = join(dir, "user-id");
+    await writeFile(userIdPath, "\n", "utf8");
+
+    const id = await getOrCreateUserId({ userIdPath });
+
+    expect(id).toBeTruthy();
+    await expect(readFile(userIdPath, "utf8")).resolves.toBe(`${id}\n`);
   });
 });
 

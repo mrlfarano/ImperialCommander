@@ -33,4 +33,27 @@ describe("add-task command", () => {
       complexity: { level: "medium" },
     });
   });
+
+  it("passes --no-ai through to manual task creation", async () => {
+    const storePath = join(
+      await mkdtemp(join(tmpdir(), "imperial-add-task-command-no-ai-")),
+      "tasks.json",
+    );
+
+    await expect(
+      addTaskCommand({
+        file: storePath,
+        title: "Manual",
+        description: "Manual description",
+        noAi: true,
+      }),
+    ).resolves.toContain("Created task 1");
+
+    const task = await new FileTaskRepository({ storePath }).findById(1);
+    expect(task).toMatchObject({
+      title: "Manual",
+      priority: "medium",
+    });
+    expect(task?.complexity).toBeUndefined();
+  });
 });

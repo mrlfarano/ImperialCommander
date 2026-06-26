@@ -182,6 +182,110 @@ describe("Hermes Kanban sync", () => {
     expect(log).toContain("auto-demo");
     expect(log).toContain("IC#1 — Task 1");
   });
+
+  it("does not create a missing Hermes board during dry-run sync", async () => {
+    const calls: string[][] = [];
+    const commandRunner: SyncCommandRunner = async (command, args) => {
+      calls.push([command, ...args]);
+      const joined = args.join(" ");
+      if (joined === "kanban boards list --json") {
+        return result(JSON.stringify([]));
+      }
+      if (joined === "kanban --board dry-demo list --json --archived") {
+        return result(JSON.stringify([]));
+      }
+      throw new Error(`unexpected command: ${joined}`);
+    };
+
+    const syncResult = await runExternalSync(repository, {
+      provider: "hermes-kanban",
+      projectRoot: root,
+      tag: "master",
+      board: "dry-demo",
+      scope: "all",
+      dryRun: true,
+      commandRunner,
+    });
+
+    expect(syncResult).toMatchObject({ dryRun: true, pushed: 2, linked: 1 });
+    expect(calls.some((call) => call.join(" ").includes("boards create"))).toBe(false);
+  });
+
+  it("ignores already-linked Hermes dependency errors", async () => {
+    const commandRunner: SyncCommandRunner = async (_command, args) => {
+      const joined = args.join(" ");
+      if (joined === "kanban boards list --json") {
+        return result(JSON.stringify([{ slug: "demo" }]));
+      }
+      if (joined === "kanban --board demo list --json --archived") {
+        return result(JSON.stringify([]));
+      }
+      if (joined.includes("kanban --board demo create")) {
+        const key = args[args.indexOf("--idempotency-key") + 1];
+        return result(JSON.stringify({ id: `t_${key.split(":").at(-1)}` }));
+      }
+      if (joined === "kanban --board demo link t_1 t_2") {
+        return { exitCode: 1, stdout: "", stderr: "already linked" };
+      }
+      throw new Error(`unexpected command: ${joined}`);
+    };
+
+    const syncResult = await runExternalSync(repository, {
+      provider: "hermes-kanban",
+      projectRoot: root,
+      tag: "master",
+      board: "demo",
+      scope: "all",
+      dryRun: false,
+      commandRunner,
+    });
+
+    expect(syncResult.linked).toBe(0);
+  });
+
+  it("refreshes existing Hermes tasks when create output omits an id", async () => {
+    let listCalls = 0;
+    const commandRunner: SyncCommandRunner = async (_command, args) => {
+      const joined = args.join(" ");
+      if (joined === "kanban boards list --json") {
+        return result(JSON.stringify([{ slug: "demo" }]));
+      }
+      if (joined === "kanban --board demo list --json --archived") {
+        listCalls += 1;
+        return result(
+          listCalls === 1
+            ? JSON.stringify([])
+            : JSON.stringify([
+                {
+                  id: "t_refreshed",
+                  idempotency_key: `imperial:${root}:master:1`,
+                },
+              ]),
+        );
+      }
+      if (joined.includes("kanban --board demo create")) {
+        return result(JSON.stringify({ ok: true }));
+      }
+      throw new Error(`unexpected command: ${joined}`);
+    };
+
+    const singleTaskRepository = new FileTaskRepository({ storePath: join(root, "single.json") });
+    await singleTaskRepository.create(task(1));
+
+    const syncResult = await runExternalSync(singleTaskRepository, {
+      provider: "hermes-kanban",
+      projectRoot: root,
+      tag: "master",
+      board: "demo",
+      scope: "all",
+      dryRun: false,
+      commandRunner,
+    });
+
+    expect(syncResult.mappings).toEqual([
+      expect.objectContaining({ taskId: "1", externalId: "t_refreshed" }),
+    ]);
+  });
 });
 
 function result(stdout: string, exitCode = 0) {
